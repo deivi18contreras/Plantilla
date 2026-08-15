@@ -34,29 +34,7 @@
         <!-- Categoría -->
         <div>
           <div class="text-caption text-weight-bold text-slate-700 q-mb-sm">Categoría</div>
-
-          <!-- CHIPS desde configuración -->
-          <div v-if="configStore.categoriasActivas.length > 0" class="chips-grid">
-            <div
-              v-for="cat in configStore.categoriasActivas"
-              :key="cat.nombre"
-              class="categoria-chip"
-              :class="{ active: form.categoria === cat.nombre }"
-              @click="form.categoria = cat.nombre"
-            >
-              <span style="font-size: 16px;">{{ cat.emoji }}</span>
-              <span>{{ cat.nombre }}</span>
-            </div>
-          </div>
-
-          <!-- Fallback: texto libre -->
-          <q-input
-            v-else
-            v-model="form.categoria"
-            placeholder="Categoría"
-            borderless
-            class="clean-input"
-          />
+          <SelectorCategorias v-model="form.categoria" :categorias="configStore.categoriasActivas" />
         </div>
 
         <!-- Descripción -->
@@ -111,6 +89,7 @@ import { postData } from '@/services/apiService'
 import { useCuentasStore } from '@/store/cuentasStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
 import { useRouter } from 'vue-router'
+import SelectorCategorias from '@/components/SelectorCategorias.vue'
 
 const $q = useQuasar()
 const router = useRouter()

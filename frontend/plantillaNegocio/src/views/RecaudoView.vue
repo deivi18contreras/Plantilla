@@ -214,50 +214,12 @@
   </div>
 
   <!-- MODAL COMPARTIR CIERRE -->
-  <q-dialog v-model="modalCompartir" persistent>
-    <q-card style="width: 480px; max-width: 95vw; border-radius: 24px;" class="q-pa-md">
-      <q-card-section class="row items-center justify-between q-pb-xs">
-        <div class="text-h6 text-weight-bolder text-slate-900">📤 Compartir Cierre</div>
-        <q-btn flat round icon="close" @click="cerrarModalYRedirigir" />
-      </q-card-section>
-
-      <q-card-section>
-        <!-- Preview estilo WhatsApp -->
-        <div class="q-pa-md q-mb-md" style="background: #dcfce7; border-radius: 16px; font-family: monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;">
-          {{ textoWhatsApp }}
-        </div>
-
-        <div class="column q-gutter-y-sm">
-          <q-btn
-            color="positive"
-            icon="chat"
-            label="Enviar por WhatsApp"
-            no-caps
-            class="text-weight-bold"
-            style="border-radius: 12px;"
-            @click="abrirWhatsApp"
-          />
-          <q-btn
-            outline
-            color="primary"
-            icon="content_copy"
-            label="Copiar al portapapeles"
-            no-caps
-            class="text-weight-bold"
-            style="border-radius: 12px;"
-            @click="copiarTexto"
-          />
-          <q-btn
-            flat
-            no-caps
-            label="Continuar sin compartir"
-            class="text-slate-500"
-            @click="cerrarModalYRedirigir"
-          />
-        </div>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+  <ModalCompartirCierre
+    v-model="modalCompartir"
+    :texto="textoWhatsApp"
+    mostrar-continuar
+    @cerrar="router.push(authStore.isAdmin ? '/' : '/historial')"
+  />
 </template>
 
 <script setup>
@@ -268,6 +230,7 @@ import { useCuentasStore } from '@/store/cuentasStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/authStore'
+import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
 
 const $q = useQuasar()
 const router = useRouter()

@@ -127,102 +127,13 @@
           Sin cierres de caja registrados para esta fecha
         </div>
 
-        <div v-else class="column q-gutter-y-lg">
-          <div
+        <div v-else class="column q-gutter-y-md">
+          <CardCierreAgrupado
             v-for="cierre in cierresAgrupados"
             :key="cierre.fecha"
-            class="bg-white border border-slate-200 q-pa-md shadow-sm"
-            style="border-radius: 20px; border: 1px solid #cbd5e1;"
-          >
-            <!-- Encabezado de la Tarjeta del Cierre -->
-            <div class="row items-center justify-between q-mb-md border-b border-slate-100 q-pb-sm">
-              <div class="row items-center q-gutter-x-sm">
-                <q-avatar size="40px" color="blue-1" text-color="blue-8" icon="event" class="text-weight-bold" />
-                <div>
-                  <div class="text-subtitle1 text-weight-bolder text-slate-900 text-capitalize">
-                    Cierre Diario — {{ formatFechaLarga(cierre.fecha) }}
-                  </div>
-                  <div class="text-caption text-slate-500 font-medium">
-                    Registrado por: <strong class="text-slate-800">{{ cierre.creadoPor }}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Fila 1: GASTOS Y EFECTIVO NETO -->
-            <div class="row q-col-gutter-sm q-mb-sm">
-              <div class="col-12 col-sm-6">
-                <div class="q-pa-sm bg-red-50 border border-red-2" style="border-radius: 12px; background: #fff1f2; border: 1px solid #fecdd3;">
-                  <div class="text-caption text-red-7 text-weight-bold">🔴 Gastos del día (del negocio):</div>
-                  <div class="text-h6 text-weight-bolder text-red-8">- {{ formatCOP(cierre.gastosReales) }}</div>
-                  <div v-if="cierre.gastosExternos > 0" class="text-caption text-orange-7 q-mt-xs">
-                    ⚡ + {{ formatCOP(cierre.gastosExternos) }} externos (no cuentan en venta)
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12 col-sm-6">
-                <div class="q-pa-sm bg-green-50 border border-green-2" style="border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0;">
-                  <div class="text-caption text-green-7 text-weight-bold">💵 Recaudo Efectivo Neto (Contado - $600k Base):</div>
-                  <div class="text-h6 text-weight-bolder text-green-8">{{ formatCOP(cierre.efectivo) }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Fila 2: NEQUI Y BANCOLOMBIA -->
-            <div class="row q-col-gutter-sm q-mb-md">
-              <div class="col-12 col-sm-6">
-                <div class="q-pa-sm bg-purple-50 border border-purple-2" style="border-radius: 12px; background: #faf5ff; border: 1px solid #e9d5ff;">
-                  <div class="text-caption text-purple-7 text-weight-bold">📱 Total Nequi recibido:</div>
-                  <div class="text-h6 text-weight-bolder text-purple-9">{{ formatCOP(cierre.nequi) }}</div>
-                </div>
-              </div>
-
-              <div class="col-12 col-sm-6">
-                <div class="q-pa-sm bg-amber-50 border border-amber-2" style="border-radius: 12px; background: #fffbeb; border: 1px solid #fde68a;">
-                  <div class="text-caption text-amber-8 text-weight-bold">🏦 Total Bancolombia recibido:</div>
-                  <div class="text-h6 text-weight-bolder text-amber-9">{{ formatCOP(cierre.bancolombia) }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Caja Resumen Oscura con Títulos Blancos e Importes Grandes -->
-            <div class="q-pa-md bg-slate-900 text-white shadow-md" style="border-radius: 16px; background: #0f172a;">
-              <div class="column q-gutter-y-xs">
-
-                <!-- CIERRE TOTAL -->
-                <div class="row items-center justify-between">
-                  <span class="text-caption text-weight-bold text-slate-200">🔵 CIERRE TOTAL (Efectivo Neto + Nequi + Bancolombia):</span>
-                  <span class="text-h6 text-weight-bolder text-blue-4">{{ formatCOP(cierre.totalCierre) }}</span>
-                </div>
-
-                <q-separator dark class="q-my-xs" style="opacity: 0.2;" />
-
-                <!-- VENTA TOTAL -->
-                <div class="row items-center justify-between">
-                  <span class="text-subtitle2 text-weight-bolder text-green-4">🟢 VENTA TOTAL DEL DÍA (Gastos + Cierre):</span>
-                  <span class="text-h5 text-weight-bolder text-green-4">{{ formatCOP(cierre.totalVenta) }}</span>
-                </div>
-
-                <div v-if="cierre.observaciones" class="text-caption text-amber-3 q-mt-xs font-medium border-t border-slate-800 q-pt-xs" style="border-top: 1px solid rgba(255,255,255,0.15);">
-                  📝 Observaciones: {{ cierre.observaciones }}
-                </div>
-              </div>
-            </div>
-
-            <!-- BOTÓN COMPARTIR -->
-            <div class="row justify-end q-mt-sm">
-              <q-btn
-                flat no-caps
-                icon="share"
-                label="Compartir por WhatsApp"
-                color="positive"
-                class="text-weight-bold"
-                style="border-radius: 10px;"
-                @click="abrirCompartirCierre(cierre)"
-              />
-            </div>
-          </div>
+            :cierre="cierre"
+            @compartir="abrirCompartirCierre"
+          />
         </div>
       </template>
 
@@ -275,24 +186,7 @@
   </div>
 
   <!-- MODAL COMPARTIR CIERRE (DESDE HISTORIAL) -->
-  <q-dialog v-model="modalCompartir">
-    <q-card style="width: 480px; max-width: 95vw; border-radius: 24px;" class="q-pa-md">
-      <q-card-section class="row items-center justify-between q-pb-xs">
-        <div class="text-h6 text-weight-bolder text-slate-900">📤 Compartir Cierre</div>
-        <q-btn flat round icon="close" v-close-popup />
-      </q-card-section>
-      <q-card-section>
-        <div class="q-pa-md q-mb-md" style="background: #dcfce7; border-radius: 16px; font-family: monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;">
-          {{ textoCompartir }}
-        </div>
-        <div class="column q-gutter-y-sm">
-          <q-btn color="positive" icon="chat" label="Enviar por WhatsApp" no-caps class="text-weight-bold" style="border-radius: 12px;" @click="abrirWhatsApp" />
-          <q-btn outline color="primary" icon="content_copy" label="Copiar al portapapeles" no-caps class="text-weight-bold" style="border-radius: 12px;" @click="copiarTexto" />
-        </div>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
-
+  <ModalCompartirCierre v-model="modalCompartir" :texto="textoCompartir" />
 </template>
 
 <script setup>
@@ -304,6 +198,8 @@ import { useConfiguracionStore } from '@/store/configuracionStore'
 import { putData, deleteData } from '@/services/apiService'
 import { useQuasar } from 'quasar'
 import * as XLSX from 'xlsx'
+import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
+import CardCierreAgrupado from '@/components/CardCierreAgrupado.vue'
 
 const $q = useQuasar()
 const movimientosStore = useMovimientosStore()

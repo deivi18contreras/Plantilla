@@ -98,26 +98,24 @@
           <div class="row items-center justify-between q-mb-sm">
             <div class="text-subtitle1 text-weight-bold text-slate-900">Cuentas</div>
           </div>
-          <div class="account-item cursor-pointer" @click="$router.push('/recaudo')">
-            <div class="row items-center q-gutter-sm">
-              <q-avatar size="32px" color="purple-1" text-color="purple-8" icon="phone_android" />
-              <div>
-                <div class="text-caption text-slate-500 font-medium">Nequi</div>
-                <div class="text-subtitle1 text-weight-bolder text-slate-900">{{ formatCOP(cuentasStore.saldoPor('Nequi')) }}</div>
-              </div>
-            </div>
-            <q-icon name="chevron_right" color="slate-400" size="20px" />
-          </div>
-          <div class="account-item cursor-pointer" @click="$router.push('/recaudo')">
-            <div class="row items-center q-gutter-sm">
-              <q-avatar size="32px" color="amber-1" text-color="amber-9" icon="account_balance" />
-              <div>
-                <div class="text-caption text-slate-500 font-medium">Bancolombia</div>
-                <div class="text-subtitle1 text-weight-bolder text-slate-900">{{ formatCOP(cuentasStore.saldoPor('Bancolombia')) }}</div>
-              </div>
-            </div>
-            <q-icon name="chevron_right" color="slate-400" size="20px" />
-          </div>
+          <CardCuenta
+            nombre="Nequi"
+            :monto="cuentasStore.saldoPor('Nequi')"
+            icon="phone_android"
+            avatar-color="purple-1"
+            avatar-text-color="purple-8"
+            clickable
+            @click="$router.push('/recaudo')"
+          />
+          <CardCuenta
+            nombre="Bancolombia"
+            :monto="cuentasStore.saldoPor('Bancolombia')"
+            icon="account_balance"
+            avatar-color="amber-1"
+            avatar-text-color="amber-9"
+            clickable
+            @click="$router.push('/recaudo')"
+          />
         </div>
       </div>
 
@@ -127,25 +125,22 @@
           <div class="row items-center justify-between q-mb-sm">
             <div class="text-subtitle1 text-weight-bold text-slate-900">Efectivo & Total</div>
           </div>
-          <div class="account-item cursor-pointer" @click="$router.push('/recaudo')">
-            <div class="row items-center q-gutter-sm">
-              <q-avatar size="32px" color="green-1" text-color="green-8" icon="payments" />
-              <div>
-                <div class="text-caption text-slate-500 font-medium">Efectivo</div>
-                <div class="text-subtitle1 text-weight-bolder text-slate-900">{{ formatCOP(cuentasStore.saldoPor('Efectivo')) }}</div>
-              </div>
-            </div>
-            <q-icon name="chevron_right" color="slate-400" size="20px" />
-          </div>
-          <div class="account-item">
-            <div class="row items-center q-gutter-sm">
-              <q-avatar size="32px" color="blue-1" text-color="blue-8" icon="account_balance_wallet" />
-              <div>
-                <div class="text-caption text-slate-500 font-medium">Total en Cuentas</div>
-                <div class="text-subtitle1 text-weight-bolder text-primary">{{ formatCOP(cuentasStore.totalSaldo) }}</div>
-              </div>
-            </div>
-          </div>
+          <CardCuenta
+            nombre="Efectivo"
+            :monto="cuentasStore.saldoPor('Efectivo')"
+            icon="payments"
+            avatar-color="green-1"
+            avatar-text-color="green-8"
+            clickable
+            @click="$router.push('/recaudo')"
+          />
+          <CardCuenta
+            nombre="Total en Cuentas"
+            :monto="cuentasStore.totalSaldo"
+            icon="account_balance_wallet"
+            avatar-color="blue-1"
+            avatar-text-color="blue-8"
+          />
         </div>
       </div>
 
@@ -210,6 +205,7 @@ import { useMovimientosStore } from '@/store/movimientosStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
 import { getData } from '@/services/apiService'
 import { useRouter } from 'vue-router'
+import CardCuenta from '@/components/CardCuenta.vue'
 
 const authStore = useAuthStore()
 const cuentasStore = useCuentasStore()
