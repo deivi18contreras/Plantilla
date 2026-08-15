@@ -1,0 +1,251 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+* {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── TARJETA DASHBOARD PRINCIPAL ────────────────────────────────────────── */
+.dashboard-main-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(16px, 3vw, 28px);
+  padding: clamp(16px, 4vw, 32px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+/* ─── TARJETA AUTH ────────────────────────────────────────────────────────── */
+.auth-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: clamp(20px, 5vw, 36px) clamp(16px, 5vw, 32px);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* ─── TARJETA AZUL SÓLIDA ─────────────────────────────────────────────────── */
+.card-solid-blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  border-radius: clamp(16px, 3vw, 24px);
+  padding: clamp(16px, 3.5vw, 28px);
+  color: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+}
+.card-solid-blue .title {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: clamp(13px, 2vw, 15px);
+  font-weight: 600;
+}
+.card-solid-blue .amount {
+  color: #ffffff;
+  font-size: clamp(22px, 5vw, 36px);
+  font-weight: 800;
+  margin-top: 8px;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* ─── TARJETA WIDGET GENÉRICA ─────────────────────────────────────────────── */
+.card-widget {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(16px, 3vw, 24px);
+  padding: clamp(16px, 3.5vw, 28px);
+}
+
+/* ─── BOTÓN PRINCIPAL ─────────────────────────────────────────────────────── */
+.btn-primary-custom {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: clamp(14px, 2vw, 15px) !important;
+  border-radius: 16px !important;
+  padding: clamp(12px, 2vw, 14px) 24px !important;
+  border: none !important;
+  width: 100%;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  transition: all 0.2s ease-in-out !important;
+  text-transform: none !important;
+}
+.btn-primary-custom:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45) !important;
+  transform: translateY(-1px);
+}
+.btn-primary-custom:active {
+  transform: translateY(0);
+}
+.btn-primary-custom:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ─── BOTONES ACCIÓN RÁPIDA ───────────────────────────────────────────────── */
+.btn-action-light {
+  background-color: #ffffff !important;
+  border: 1.5px solid #dbeafe !important;
+  border-radius: 18px !important;
+  color: #1e40af !important;
+  font-weight: 700 !important;
+  font-size: clamp(13px, 2vw, 15px) !important;
+  text-transform: none !important;
+  padding: clamp(12px, 2vw, 16px) clamp(14px, 2vw, 20px) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.05);
+}
+.btn-action-light:hover {
+  background-color: #dbeafe !important;
+  border-color: #bfdbfe !important;
+  transform: translateY(-1px);
+}
+
+/* ─── PÍLDORAS DE SELECCIÓN ───────────────────────────────────────────────── */
+.pill-option {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: clamp(10px, 2vw, 14px) clamp(14px, 2.5vw, 20px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: clamp(13px, 2vw, 15px);
+  color: #334155;
+  transition: all 0.15s ease;
+  /* Touch target mínimo */
+  min-height: 44px;
+}
+.pill-option:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+.pill-option.active {
+  background-color: #dbeafe !important;
+  border-color: #93c5fd !important;
+  color: #1e40af !important;
+}
+
+/* ─── INPUTS ──────────────────────────────────────────────────────────────── */
+.clean-input .q-field__control {
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 4px 16px !important;
+  font-size: clamp(14px, 2vw, 16px) !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  min-height: 48px;
+}
+.clean-input .q-field__control:before,
+.clean-input .q-field__control:after {
+  display: none !important;
+}
+
+/* ─── ACCOUNT ITEM ────────────────────────────────────────────────────────── */
+.account-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.account-item:last-child {
+  border-bottom: none;
+}
+
+/* ─── SIDEBAR ─────────────────────────────────────────────────────────────── */
+.sidebar-nav {
+  width: 80px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  gap: 16px;
+}
+
+.sidebar-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  /* Touch target mínimo */
+  min-width: 44px;
+  min-height: 44px;
+}
+.sidebar-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.sidebar-btn.active {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* ─── LAYOUT WRAPPER ──────────────────────────────────────────────────────── */
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+.content-wrapper {
+  flex: 1;
+  padding: clamp(16px, 3vw, 32px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ─── CHIPS DE CATEGORÍAS (GastoView) ────────────────────────────────────── */
+.categoria-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 40px;
+  white-space: nowrap;
+}
+.categoria-chip.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+/* ─── SCROLLBAR SUAVE ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
