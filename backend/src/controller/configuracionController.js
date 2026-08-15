@@ -21,7 +21,7 @@ export const obtenerConfiguracion = async (req, res) => {
 // Solo Admin. Actualiza los valores de configuración.
 export const actualizarConfiguracion = async (req, res) => {
     try {
-        const { baseFija, cadenaDefault, nombreNegocio, metaDiaria } = req.body
+        const { baseFija, cadenaDefault, nombreNegocio, metaDiaria, categorias } = req.body
 
         const config = await Configuracion.findOneAndUpdate(
             {},
@@ -29,7 +29,8 @@ export const actualizarConfiguracion = async (req, res) => {
                 ...(baseFija !== undefined && { baseFija: Number(baseFija) }),
                 ...(cadenaDefault !== undefined && { cadenaDefault: Number(cadenaDefault) }),
                 ...(nombreNegocio !== undefined && { nombreNegocio }),
-                ...(metaDiaria !== undefined && { metaDiaria: Number(metaDiaria) })
+                ...(metaDiaria !== undefined && { metaDiaria: Number(metaDiaria) }),
+                ...(categorias !== undefined && { categorias })
             },
             { new: true, upsert: true }
         )
