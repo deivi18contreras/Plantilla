@@ -1,8 +1,15 @@
 import axios from 'axios'
 
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  return import.meta.env.DEV ? 'http://127.0.0.1:3000/api' : 'https://plantilla-pzuv.onrender.com/api'
+}
+
 const axiosInstance = axios.create({
-  baseURL: 'http://127.0.0.1:3000/api',
-  timeout: 10000,
+  baseURL: getBaseURL(),
+  timeout: 20000,
   headers: { 'Content-Type': 'application/json' }
 })
 
