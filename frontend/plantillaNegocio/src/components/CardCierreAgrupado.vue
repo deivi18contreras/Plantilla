@@ -88,6 +88,8 @@
 </template>
 
 <script setup>
+import { formatFechaLarga } from '@/utils/dateUtils'
+
 defineProps({
   cierre: {
     type: Object,
@@ -99,10 +101,4 @@ defineEmits(['compartir'])
 
 const formatCOP = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val ?? 0)
-
-const formatFechaLarga = (fechaStr) => {
-  if (!fechaStr) return ''
-  const d = new Date(fechaStr + 'T12:00:00')
-  return d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-}
 </script>

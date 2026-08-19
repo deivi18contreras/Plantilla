@@ -90,6 +90,7 @@ import { useCuentasStore } from '@/store/cuentasStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
 import { useRouter } from 'vue-router'
 import SelectorCategorias from '@/components/SelectorCategorias.vue'
+import { getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -98,14 +99,6 @@ const configStore = useConfiguracionStore()
 
 const cuentas = ['Nequi', 'Bancolombia', 'Efectivo']
 const loading = ref(false)
-
-const getFechaLocalHoy = () => {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const form = ref({
   monto: null,

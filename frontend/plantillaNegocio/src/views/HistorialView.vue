@@ -200,6 +200,7 @@ import { useQuasar } from 'quasar'
 import * as XLSX from 'xlsx'
 import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
 import CardCierreAgrupado from '@/components/CardCierreAgrupado.vue'
+import { parseFechaLocal, formatFechaLarga, formatFechaCorta, getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const movimientosStore = useMovimientosStore()
@@ -209,14 +210,6 @@ const configStore = useConfiguracionStore()
 
 const modalCompartir = ref(false)
 const textoCompartir = ref('')
-
-const getFechaLocalHoy = () => {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const filtroFecha = ref(getFechaLocalHoy())
 const pestanaActiva = ref('movimientos')
@@ -237,28 +230,10 @@ const movimientosPaginados = computed(() => {
   return movimientosStore.movimientos.slice(inicio, inicio + POR_PAGINA)
 })
 
-// HELPER PARA PARSEAR FECHAS LOCALES SIN DESFASE HORARIO DE ZONA UTC
-const parseFechaLocal = (fechaStr) => {
-  if (!fechaStr) return new Date()
-  const datePart = fechaStr.split('T')[0]
-  const [year, month, day] = datePart.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
-
 const formatCOP = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val ?? 0)
 
-const formatFechaItem = (fechaStr) => {
-  if (!fechaStr) return ''
-  const d = parseFechaLocal(fechaStr)
-  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
-}
-
-const formatFechaLarga = (fechaStr) => {
-  if (!fechaStr) return ''
-  const d = parseFechaLocal(fechaStr)
-  return d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-}
+const formatFechaItem = (fechaStr) => formatFechaCorta(fechaStr)
 
 // CIERRES DIARIOS AGRUPADOS CON DETALLES COMPLETOS Y VALORES REALES DE RECAUDO NETO
 const cierresAgrupados = computed(() => {
@@ -382,8 +357,7 @@ const confirmarEliminar = () => {
 }
 
 const abrirCompartirCierre = (cierre) => {
-  const fecha = new Date((cierre.fecha || '') + '')
-  const fechaStr = new Date(cierre.fecha).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const fechaStr = formatFechaLarga(cierre.fecha)
   const negocio = configStore.nombreNegocio || 'Negocio'
   textoCompartir.value = `📊 *CIERRE DE TURNO*
 ${negocio.toUpperCase()} — ${fechaStr}

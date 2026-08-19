@@ -231,6 +231,7 @@ import { useConfiguracionStore } from '@/store/configuracionStore'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/authStore'
 import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
+import { formatFechaLarga, getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -244,14 +245,6 @@ const cierreYaExiste = ref(false)
 const modalCompartir = ref(false)
 const textoWhatsApp = ref('')
 const ultimoCierreData = ref(null)
-
-const getFechaLocalHoy = () => {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const form = ref({
   fecha: getFechaLocalHoy(),
@@ -309,8 +302,7 @@ const onFechaChange = async () => {
 }
 
 const generarTextoWhatsApp = () => {
-  const fecha = new Date(form.value.fecha + 'T12:00:00')
-  const fechaStr = fecha.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const fechaStr = formatFechaLarga(form.value.fecha)
   const negocio = configStore.nombreNegocio || 'Negocio'
   const por = authStore.nombreUsuario || 'Empleado'
   const gastos = totalGastosDia.value - gastosExternosNum.value
