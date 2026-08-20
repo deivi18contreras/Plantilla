@@ -1,22 +1,10 @@
 <template>
-  <div class="row justify-center q-pa-md">
-    <div class="card-widget" style="max-width: 480px; width: 100%;">
+  <div class="gasto-layout q-pa-md">
 
-      <div class="text-h5 text-weight-bolder text-slate-900 q-mb-md">Nuevo Gasto</div>
+    <!-- COLUMNA IZQUIERDA: Formulario -->
+    <div class="gasto-form card-widget">
 
-      <!-- BANNER IMPORTAR EXCEL -->
-      <div
-        class="row items-center q-pa-md q-mb-lg cursor-pointer"
-        style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); border-radius: 16px; gap: 12px;"
-        @click="modalImportar = true"
-      >
-        <div style="font-size: 28px; line-height: 1;">📥</div>
-        <div class="col">
-          <div class="text-weight-bolder text-white" style="font-size: 14px;">Importar planilla de gastos</div>
-          <div class="text-caption" style="color: rgba(255,255,255,0.6);">Sube un Excel con varios gastos a la vez</div>
-        </div>
-        <q-icon name="chevron_right" color="white" size="20px" style="opacity: 0.6;" />
-      </div>
+      <div class="text-h5 text-weight-bolder text-slate-900 q-mb-lg">Nuevo Gasto</div>
 
       <q-form @submit="handleSubmit" class="column q-gutter-y-md">
 
@@ -91,8 +79,46 @@
         </div>
 
       </q-form>
+    </div>
+
+    <!-- COLUMNA DERECHA: Panel de importación (solo visible en desktop) -->
+    <div class="gasto-panel">
+
+      <!-- BANNER IMPORTAR EXCEL -->
+      <div
+        class="cursor-pointer q-pa-lg"
+        style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); border-radius: 20px;"
+        @click="modalImportar = true"
+      >
+        <div style="font-size: 40px; margin-bottom: 12px;">📥</div>
+        <div class="text-white text-weight-bolder q-mb-xs" style="font-size: 18px;">Importar planilla</div>
+        <div class="text-caption q-mb-md" style="color: rgba(255,255,255,0.6); line-height: 1.5;">
+          ¿El contratista llenó la planilla en papel? Pásala a Excel y sube todos los gastos de una vez.
+        </div>
+        <div class="row items-center q-gutter-x-xs" style="color: rgba(255,255,255,0.8);">
+          <q-icon name="download" size="14px" />
+          <span class="text-caption text-weight-bold">Descargar plantilla → Llenar → Subir</span>
+        </div>
+        <div class="q-mt-md">
+          <div class="row items-center justify-between text-caption q-pa-sm" style="background: rgba(255,255,255,0.1); border-radius: 10px; color: white;">
+            <span>📋 Fecha</span><span>📝 Descripción</span><span>🏷️ Categoría</span><span>💳 Cuenta</span><span>💰 Monto</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFO EXTRA solo desktop -->
+      <div class="q-pa-md q-mt-md" style="background: #f0fdf4; border-radius: 16px; border: 1px solid #bbf7d0;">
+        <div class="text-caption text-green-8 text-weight-bold q-mb-xs">💡 ¿Cómo funciona?</div>
+        <div class="text-caption text-slate-600" style="line-height: 1.7;">
+          1. Toca el panel de arriba<br>
+          2. Descarga la plantilla Excel<br>
+          3. Llena los gastos (una fila por gasto)<br>
+          4. Sube el archivo — la app los registra todos de una vez y ajusta los saldos automáticamente
+        </div>
+      </div>
 
     </div>
+
   </div>
 
 

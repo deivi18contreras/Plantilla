@@ -249,3 +249,28 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ─── LAYOUT NUEVO GASTO — DOS COLUMNAS EN DESKTOP ─────────────────────────── */
+.gasto-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.gasto-form {
+  width: 100%;
+}
+/* En móvil: ocultar el panel lateral */
+.gasto-panel {
+  display: none;
+}
+@media (min-width: 768px) {
+  .gasto-layout {
+    grid-template-columns: 1fr 380px;
+    align-items: start;
+  }
+  .gasto-panel {
+    display: block;
+  }
+}
