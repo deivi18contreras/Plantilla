@@ -2,7 +2,18 @@
   <div class="row justify-center q-pa-md">
     <div class="card-widget" style="max-width: 480px; width: 100%;">
 
-      <div class="text-h5 text-weight-bolder text-slate-900 q-mb-lg">Nuevo Gasto</div>
+      <div class="row items-center justify-between q-mb-lg">
+        <div class="text-h5 text-weight-bolder text-slate-900">Nuevo Gasto</div>
+        <q-btn
+          outline color="teal-7"
+          icon="upload_file"
+          label="Importar Excel"
+          no-caps
+          class="text-weight-bold"
+          style="border-radius: 10px; font-size: 12px;"
+          @click="modalImportar = true"
+        />
+      </div>
 
       <q-form @submit="handleSubmit" class="column q-gutter-y-md">
 
@@ -80,6 +91,12 @@
 
     </div>
   </div>
+
+  <!-- MODAL IMPORTAR EXCEL -->
+  <ModalImportarGastos
+    v-model="modalImportar"
+    @importado="onImportado"
+  />
 </template>
 
 <script setup>
@@ -90,6 +107,7 @@ import { useCuentasStore } from '@/store/cuentasStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
 import { useRouter } from 'vue-router'
 import SelectorCategorias from '@/components/SelectorCategorias.vue'
+import ModalImportarGastos from '@/components/ModalImportarGastos.vue'
 import { getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
@@ -99,6 +117,12 @@ const configStore = useConfiguracionStore()
 
 const cuentas = ['Nequi', 'Bancolombia', 'Efectivo']
 const loading = ref(false)
+const modalImportar = ref(false)
+
+const onImportado = async () => {
+  await cuentasStore.fetchCuentas()
+  $q.notify({ type: 'positive', message: '✅ Gastos importados. Historial actualizado.' })
+}
 
 const form = ref({
   monto: null,

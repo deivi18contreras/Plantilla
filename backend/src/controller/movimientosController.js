@@ -449,3 +449,97 @@ export const eliminarMovimiento = async (req, res) => {
         });
     }
 };
+
+// ─── POST /api/movimientos/importar-gastos ────────────────────────────────────
+// Recibe un array de gastos y los importa todos en una sola transacción.
+export const importarGastos = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { gastos } = req.body;
+
+        if (!Array.isArray(gastos) || gastos.length === 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ mensaje: '❌ Se requiere un array de gastos no vacío' });
+        }
+
+        // Validar cada fila
+        for (let i = 0; i < gastos.length; i++) {
+            const g = gastos[i];
+            if (!g.fecha || !g.monto || !g.cuenta) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    mensaje: `❌ Fila ${i + 1}: fecha, monto y cuenta son obligatorios`
+                });
+            }
+            if (isNaN(Number(g.monto)) || Number(g.monto) <= 0) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    mensaje: `❌ Fila ${i + 1}: monto inválido "${g.monto}"`
+                });
+            }
+            const cuentasValidas = ['Efectivo', 'Nequi', 'Bancolombia'];
+            if (!cuentasValidas.includes(g.cuenta)) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    mensaje: `❌ Fila ${i + 1}: cuenta inválida "${g.cuenta}" (use Efectivo, Nequi o Bancolombia)`
+                });
+            }
+        }
+
+        // Agrupar montos por cuenta para un solo update por cuenta
+        const montosPorCuenta = {};
+        for (const g of gastos) {
+            const monto = Number(g.monto);
+            montosPorCuenta[g.cuenta] = (montosPorCuenta[g.cuenta] || 0) + monto;
+        }
+
+        // Actualizar saldos de cuentas
+        for (const [nombreCuenta, totalDescontar] of Object.entries(montosPorCuenta)) {
+            let cuentaDoc = await Cuenta.findOne({ nombre: nombreCuenta }).session(session);
+            if (!cuentaDoc) {
+                const [nueva] = await Cuenta.create(
+                    [{ nombre: nombreCuenta, saldo: nombreCuenta === 'Efectivo' ? 600000 : 0 }],
+                    { session }
+                );
+                cuentaDoc = nueva;
+            }
+            cuentaDoc.saldo -= totalDescontar;
+            await cuentaDoc.save({ session });
+        }
+
+        // Insertar todos los movimientos de una sola vez
+        const movimientos = gastos.map(g => ({
+            fecha: g.fecha,
+            tipo: 'gasto',
+            descripcion: g.descripcion || '',
+            categoria: g.categoria || 'Varios',
+            monto: Number(g.monto),
+            cuenta: g.cuenta,
+            creadoPor: req.user.id
+        }));
+
+        const insertados = await Movimiento.insertMany(movimientos, { session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(201).json({
+            mensaje: `✅ ${insertados.length} gastos importados correctamente`,
+            total: insertados.length
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({
+            mensaje: '❌ Error al importar gastos',
+            error: error.message
+        });
+    }
+};

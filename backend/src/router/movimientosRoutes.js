@@ -6,7 +6,8 @@ import {
     registrarCierreDiario,
     listarMovimientos,
     editarMovimiento,
-    eliminarMovimiento
+    eliminarMovimiento,
+    importarGastos
 } from '../controller/movimientosController.js';
 import { verificarToken } from '../middlewares/authMiddleware.js';
 
@@ -16,6 +17,7 @@ router.post('/gasto', verificarToken, registrarGasto);
 router.post('/recaudo', verificarToken, registrarRecaudo);
 router.post('/cierre-diario', verificarToken, registrarCierreDiario);
 router.post('/transferencia', verificarToken, registrarTransferencia);
+router.post('/importar-gastos', verificarToken, importarGastos);
 router.get('/', verificarToken, listarMovimientos);
 router.put('/:id', verificarToken, editarMovimiento);
 router.delete('/:id', verificarToken, eliminarMovimiento);
