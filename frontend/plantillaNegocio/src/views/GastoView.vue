@@ -2,17 +2,20 @@
   <div class="row justify-center q-pa-md">
     <div class="card-widget" style="max-width: 480px; width: 100%;">
 
-      <div class="row items-center justify-between q-mb-lg">
-        <div class="text-h5 text-weight-bolder text-slate-900">Nuevo Gasto</div>
-        <q-btn
-          outline color="teal-7"
-          icon="upload_file"
-          label="Importar Excel"
-          no-caps
-          class="text-weight-bold"
-          style="border-radius: 10px; font-size: 12px;"
-          @click="modalImportar = true"
-        />
+      <div class="text-h5 text-weight-bolder text-slate-900 q-mb-md">Nuevo Gasto</div>
+
+      <!-- BANNER IMPORTAR EXCEL -->
+      <div
+        class="row items-center q-pa-md q-mb-lg cursor-pointer"
+        style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); border-radius: 16px; gap: 12px;"
+        @click="modalImportar = true"
+      >
+        <div style="font-size: 28px; line-height: 1;">📥</div>
+        <div class="col">
+          <div class="text-weight-bolder text-white" style="font-size: 14px;">Importar planilla de gastos</div>
+          <div class="text-caption" style="color: rgba(255,255,255,0.6);">Sube un Excel con varios gastos a la vez</div>
+        </div>
+        <q-icon name="chevron_right" color="white" size="20px" style="opacity: 0.6;" />
       </div>
 
       <q-form @submit="handleSubmit" class="column q-gutter-y-md">
@@ -91,6 +94,7 @@
 
     </div>
   </div>
+
 
   <!-- MODAL IMPORTAR EXCEL -->
   <ModalImportarGastos
