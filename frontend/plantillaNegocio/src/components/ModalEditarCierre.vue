@@ -1,88 +1,105 @@
 <template>
-  <q-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" persistent>
-    <q-card style="width: 500px; max-width: 94vw; border-radius: 24px; max-height: 92vh;" class="q-pa-md column no-wrap">
-      
-      <!-- ENCABEZADO -->
-      <q-card-section class="row items-center justify-between q-pb-xs q-pt-none q-px-xs">
+  <q-dialog
+    :model-value="modelValue"
+    @update:model-value="$emit('update:modelValue', $event)"
+    position="right"
+    maximized
+    transition-show="slide-left"
+    transition-hide="slide-right"
+  >
+    <q-card style="width: 440px; max-width: 100vw; height: 100vh; border-radius: 0; background: #ffffff;" class="column no-wrap shadow-24">
+
+      <!-- HEADER DEL PANEL LATERAL -->
+      <q-card-section class="row items-center justify-between q-pa-md border-b border-slate-100" style="border-bottom: 1px solid #e2e8f0; background: #fafbfc;">
         <div class="row items-center q-gutter-x-sm">
-          <q-avatar size="38px" color="blue-1" text-color="blue-8" icon="edit_note" class="text-weight-bold" />
+          <q-avatar size="36px" color="blue-1" text-color="blue-9" icon="edit_note" class="text-weight-bold" />
           <div>
-            <div class="text-subtitle1 text-weight-bolder text-slate-900">Editar Cierre Diario</div>
+            <div class="text-subtitle1 text-weight-bolder text-slate-900">Editar Cierre de Caja</div>
             <div class="text-caption text-slate-500 text-capitalize">{{ fechaLarga }}</div>
           </div>
         </div>
-        <q-btn flat round icon="close" size="sm" v-close-popup />
+        <q-btn flat round icon="close" size="sm" color="slate-500" v-close-popup />
       </q-card-section>
 
-      <!-- CUERPO DEL FORMULARIO SCROLLEABLE -->
-      <q-card-section class="col overflow-auto q-px-xs q-py-sm column q-gutter-y-sm" style="box-sizing: border-box;">
+      <!-- CUERPO DEL PANEL CON SCROLL -->
+      <q-card-section class="col overflow-auto q-pa-md column q-gutter-y-md">
 
-        <!-- 1. EFECTIVO EN CAJA -->
-        <div class="q-pa-sm bg-blue-50" style="border-radius: 14px; background: #f0f9ff; border: 1px solid #bae6fd;">
+        <!-- SECCIÓN 1: EFECTIVO -->
+        <div>
           <div class="row items-center justify-between q-mb-xs">
-            <span class="text-caption text-weight-bold text-blue-9">💵 1. Dinero Contado en Efectivo</span>
-            <span class="text-caption text-weight-bold text-blue-7">Base: {{ formatCOP(600000) }}</span>
+            <span class="text-caption text-weight-bolder text-slate-800 text-uppercase" style="letter-spacing: 0.5px;">💵 Conteo de Efectivo</span>
+            <span class="text-caption text-weight-bold text-blue-7">Base fija: {{ formatCOP(BASE_EFECTIVO) }}</span>
           </div>
 
-          <div class="text-caption text-slate-500 q-mb-xs" style="font-size: 11px;">Total de dinero físico que había en caja:</div>
-          <q-input
-            v-model="form.efectivoContado"
-            type="number"
-            placeholder="$ 0"
-            prefix="$"
-            borderless
-            class="clean-input q-mb-xs"
-          />
-
-          <!-- Cadena apartada -->
-          <div class="text-caption text-weight-bold text-orange-8 q-mt-xs q-mb-xs" style="font-size: 12px;">
-            🔗 Cadena apartada (se resta del efectivo):
+          <div class="q-mb-sm">
+            <div class="text-caption text-slate-500 q-mb-xs">Dinero físico en caja:</div>
+            <q-input
+              v-model="form.efectivoContado"
+              type="number"
+              placeholder="$ 0"
+              prefix="$"
+              borderless
+              class="clean-input"
+            />
           </div>
-          <q-input
-            v-model="form.cadena"
-            type="number"
-            placeholder="$ 0"
-            prefix="$"
-            borderless
-            class="clean-input q-mb-xs"
-          />
+
+          <div class="q-mb-sm">
+            <div class="text-caption text-slate-500 q-mb-xs">Cadena apartada (se resta del efectivo):</div>
+            <q-input
+              v-model="form.cadena"
+              type="number"
+              placeholder="$ 0"
+              prefix="$"
+              borderless
+              class="clean-input"
+            />
+          </div>
 
           <!-- Recaudo Efectivo Neto Calculado -->
-          <div class="row items-center justify-between q-pa-xs bg-white q-mt-xs" style="border-radius: 8px; border: 1px solid #bae6fd;">
-            <span class="text-caption text-slate-600 font-medium" style="font-size: 12px;">Recaudo Efectivo Neto:</span>
+          <div class="row items-center justify-between q-pa-sm bg-slate-50" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+            <span class="text-caption text-slate-600 font-medium">Recaudo Efectivo Neto:</span>
             <span class="text-subtitle2 text-weight-bolder text-green-7">{{ formatCOP(recaudoEfectivoNeto) }}</span>
           </div>
         </div>
 
-        <!-- 2. NEQUI Y BANCOLOMBIA -->
-        <div class="row q-col-gutter-xs">
-          <div class="col-6">
-            <div class="text-caption text-weight-bold text-purple-9 q-mb-xs">📱 2. Total Nequi</div>
-            <q-input
-              v-model="form.recaudoNequi"
-              type="number"
-              placeholder="$ 0"
-              prefix="$"
-              borderless
-              class="clean-input"
-            />
-          </div>
-          <div class="col-6">
-            <div class="text-caption text-weight-bold text-amber-9 q-mb-xs">🏦 3. Total Bancolombia</div>
-            <q-input
-              v-model="form.recaudoBancolombia"
-              type="number"
-              placeholder="$ 0"
-              prefix="$"
-              borderless
-              class="clean-input"
-            />
+        <q-separator style="opacity: 0.6;" />
+
+        <!-- SECCIÓN 2: DIGITALES -->
+        <div>
+          <div class="text-caption text-weight-bolder text-slate-800 text-uppercase q-mb-xs" style="letter-spacing: 0.5px;">📱 Transacciones Digitales</div>
+
+          <div class="row q-col-gutter-sm">
+            <div class="col-6">
+              <div class="text-caption text-slate-500 q-mb-xs">Nequi:</div>
+              <q-input
+                v-model="form.recaudoNequi"
+                type="number"
+                placeholder="$ 0"
+                prefix="$"
+                borderless
+                class="clean-input"
+              />
+            </div>
+            <div class="col-6">
+              <div class="text-caption text-slate-500 q-mb-xs">Bancolombia:</div>
+              <q-input
+                v-model="form.recaudoBancolombia"
+                type="number"
+                placeholder="$ 0"
+                prefix="$"
+                borderless
+                class="clean-input"
+              />
+            </div>
           </div>
         </div>
 
-        <!-- 3. GASTOS EXTERNOS -->
-        <div class="q-pa-sm" style="border-radius: 12px; background: #fff7ed; border: 1px dashed #fb923c;">
-          <div class="text-caption text-weight-bold text-orange-8 q-mb-xs">⚡ Gastos con plata externa (opcional):</div>
+        <q-separator style="opacity: 0.6;" />
+
+        <!-- SECCIÓN 3: OTROS AJUSTES -->
+        <div>
+          <div class="text-caption text-weight-bolder text-slate-800 text-uppercase q-mb-xs" style="letter-spacing: 0.5px;">⚡ Otros Ajustes</div>
+          <div class="text-caption text-slate-500 q-mb-xs">Gastos con plata externa (opcional):</div>
           <q-input
             v-model="form.gastosExternos"
             type="number"
@@ -93,52 +110,67 @@
           />
         </div>
 
-        <!-- 4. OBSERVACIONES -->
+        <q-separator style="opacity: 0.6;" />
+
+        <!-- SECCIÓN 4: NOTAS Y OBSERVACIONES (MULTILÍNEA CON ENTER) -->
         <div>
-          <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">📝 Observaciones</div>
+          <div class="text-caption text-weight-bolder text-slate-800 text-uppercase q-mb-xs" style="letter-spacing: 0.5px;">📝 Notas y Observaciones</div>
+          <div class="text-caption text-slate-500 q-mb-xs">Escribe notas detalladas (presiona Enter para saltar renglón):</div>
           <q-input
             v-model="form.observaciones"
-            placeholder="Notas sobre el cierre..."
-            borderless
-            class="clean-input"
+            type="textarea"
+            rows="4"
+            placeholder="Añade observaciones adicionales del cierre aquí..."
+            outlined
+            class="full-width"
+            style="border-radius: 14px; font-size: 14px;"
           />
-        </div>
-
-        <!-- 5. RESUMEN EN VIVO DE TOTALES -->
-        <div class="q-pa-sm bg-slate-900 text-white" style="border-radius: 14px; background: #0f172a;">
-          <div class="column q-gutter-y-xs">
-            <div class="row items-center justify-between text-caption">
-              <span class="text-slate-300">Gastos del día:</span>
-              <span class="text-weight-bold text-red-4">- {{ formatCOP(gastosReales) }}</span>
-            </div>
-            <div class="row items-center justify-between text-caption">
-              <span class="text-slate-300">Cierre Total (Efectivo + Nequi + Bancolombia):</span>
-              <span class="text-weight-bold text-blue-4">{{ formatCOP(totalCierre) }}</span>
-            </div>
-            <q-separator dark class="q-my-xs" style="opacity: 0.2;" />
-            <div class="row items-center justify-between">
-              <span class="text-caption text-weight-bolder text-green-4">🟢 VENTA TOTAL RECALCULADA:</span>
-              <span class="text-subtitle1 text-weight-bolder text-green-4">{{ formatCOP(totalVenta) }}</span>
-            </div>
-          </div>
         </div>
 
       </q-card-section>
 
-      <!-- BOTONES DE ACCIÓN -->
-      <q-card-actions class="row justify-between items-center q-pt-sm q-pb-none q-px-xs">
-        <q-btn flat no-caps label="Cancelar" color="grey-7" v-close-popup />
-        <q-btn
-          color="primary"
-          icon="save"
-          label="Guardar Cierre"
-          no-caps
-          class="text-weight-bold"
-          style="border-radius: 12px; padding: 6px 18px;"
-          :loading="guardando"
-          @click="guardar"
-        />
-      </q-card-actions>
+      <!-- FOOTER CON RESUMEN Y BOTÓN GUARDAR (FIJADO ABAJO) -->
+      <q-card-section class="q-pa-md border-t border-slate-100" style="border-top: 1px solid #e2e8f0; background: #ffffff;">
+
+        <!-- CAJA DE RESUMEN -->
+        <div class="q-pa-sm q-mb-md" style="border-radius: 14px; background: #0f172a; color: white;">
+          <div class="row items-center justify-between text-caption q-mb-xs">
+            <span class="text-slate-300">Cierre Total:</span>
+            <span class="text-weight-bold text-blue-4">{{ formatCOP(totalCierre) }}</span>
+          </div>
+          <div class="row items-center justify-between text-caption q-mb-xs">
+            <span class="text-slate-300">Gastos del día:</span>
+            <span class="text-weight-bold text-red-4">- {{ formatCOP(gastosReales) }}</span>
+          </div>
+          <q-separator dark class="q-my-xs" style="opacity: 0.2;" />
+          <div class="row items-center justify-between">
+            <span class="text-caption text-weight-bolder text-green-4">VENTA TOTAL:</span>
+            <span class="text-h6 text-weight-bolder text-green-4">{{ formatCOP(totalVenta) }}</span>
+          </div>
+        </div>
+
+        <div class="column q-gutter-y-sm">
+          <q-btn
+            color="primary"
+            icon="save"
+            label="Guardar Cambios"
+            no-caps
+            class="full-width text-weight-bold"
+            style="border-radius: 12px; padding: 10px 0; font-size: 15px;"
+            :loading="guardando"
+            @click="guardar"
+          />
+          <q-btn
+            flat
+            no-caps
+            label="Cancelar"
+            color="grey-7"
+            class="full-width"
+            v-close-popup
+          />
+        </div>
+
+      </q-card-section>
 
     </q-card>
   </q-dialog>
@@ -176,7 +208,6 @@ const BASE_EFECTIVO = 600000
 
 watch(() => props.cierre, (c) => {
   if (c) {
-    // Si viene con efectivo neto, calculamos el efectivo contado sumándole la base
     form.value = {
       efectivoContado: (c.efectivo || 0) > 0 ? (c.efectivo + BASE_EFECTIVO) : BASE_EFECTIVO,
       cadena: 0,
