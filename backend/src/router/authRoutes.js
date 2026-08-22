@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
     registrarUsuario,
     loginUsuario,
-    obtenerPerfil
+    obtenerPerfil,
+    verificarPassword
 } from '../controller/authController.js';
 import { verificarToken, soloAdmin } from '../middlewares/authMiddleware.js';
 
@@ -16,5 +17,8 @@ router.post('/login', loginUsuario);
 
 // Perfil — requiere token
 router.get('/perfil', verificarToken, obtenerPerfil);
+
+// Verificar contraseña de Admin
+router.post('/verificar-password', verificarToken, soloAdmin, verificarPassword);
 
 export default router;

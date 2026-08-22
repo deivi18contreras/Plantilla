@@ -543,3 +543,152 @@ export const importarGastos = async (req, res) => {
         });
     }
 };
+
+// ─── PUT /api/movimientos/cierre-diario ──────────────────────────────────────
+// Solo Admin. Edita o recalcula el Cierre Diario de una fecha específica.
+export const editarCierreDiario = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos } = req.body;
+
+        if (!fecha) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ mensaje: '❌ La fecha es obligatoria' });
+        }
+
+        const dateStr = String(fecha).split('T')[0];
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const inicio = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        const fin = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+
+        // 1. Buscar los movimientos de cierre existentes para ese día
+        const cierresExistentes = await Movimiento.find({
+            fecha: { $gte: inicio, $lte: fin },
+            tipo: 'recaudo',
+            categoria: 'Ventas del día'
+        }).session(session);
+
+        // 2. Revertir saldos de los movimientos viejos de cierre
+        for (const mov of cierresExistentes) {
+            const cuentaDoc = await Cuenta.findOne({ nombre: mov.cuenta }).session(session);
+            if (cuentaDoc) {
+                cuentaDoc.saldo -= mov.monto;
+                await cuentaDoc.save({ session });
+            }
+        }
+
+        // Eliminar los movimientos viejos de cierre
+        if (cierresExistentes.length > 0) {
+            await Movimiento.deleteMany({
+                _id: { $in: cierresExistentes.map(m => m._id) }
+            }).session(session);
+        }
+
+        // 3. Crear los nuevos movimientos de cierre con los valores actualizados
+        const BASE_EFECTIVO = 600000;
+        const eContado = Number(efectivoContado || 0);
+        const rNequi = Number(recaudoNequi || 0);
+        const rBancolombia = Number(recaudoBancolombia || 0);
+        const gExt = Number(gastosExternos || 0);
+
+        const recaudoEfectivoNeto = Math.max(0, eContado - BASE_EFECTIVO);
+        const fechaParaGuardar = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        const movimientosCreados = [];
+
+        // Efectivo
+        let cuentaEfectivo = await Cuenta.findOne({ nombre: 'Efectivo' }).session(session);
+        if (!cuentaEfectivo) {
+            const [c] = await Cuenta.create([{ nombre: 'Efectivo', saldo: BASE_EFECTIVO }], { session });
+            cuentaEfectivo = c;
+        }
+
+        const [mEfectivo] = await Movimiento.create(
+            [{
+                fecha: fechaParaGuardar,
+                tipo: 'recaudo',
+                descripcion: observaciones || `Cierre de caja (Contado: $${eContado.toLocaleString('es-CO')})`,
+                categoria: 'Ventas del día',
+                monto: recaudoEfectivoNeto,
+                cuenta: 'Efectivo',
+                gastosExternos: gExt,
+                creadoPor: req.user.id
+            }],
+            { session }
+        );
+        movimientosCreados.push(mEfectivo);
+
+        cuentaEfectivo.saldo = eContado > 0 ? eContado : (cuentaEfectivo.saldo + recaudoEfectivoNeto);
+        await cuentaEfectivo.save({ session });
+
+        // Nequi
+        if (rNequi > 0) {
+            let cuentaNequi = await Cuenta.findOne({ nombre: 'Nequi' }).session(session);
+            if (!cuentaNequi) {
+                const [c] = await Cuenta.create([{ nombre: 'Nequi', saldo: 0 }], { session });
+                cuentaNequi = c;
+            }
+
+            const [mNequi] = await Movimiento.create(
+                [{
+                    fecha: fechaParaGuardar,
+                    tipo: 'recaudo',
+                    descripcion: 'Recaudo Nequi del día',
+                    categoria: 'Ventas del día',
+                    monto: rNequi,
+                    cuenta: 'Nequi',
+                    creadoPor: req.user.id
+                }],
+                { session }
+            );
+            movimientosCreados.push(mNequi);
+            cuentaNequi.saldo += rNequi;
+            await cuentaNequi.save({ session });
+        }
+
+        // Bancolombia
+        if (rBancolombia > 0) {
+            let cuentaBancolombia = await Cuenta.findOne({ nombre: 'Bancolombia' }).session(session);
+            if (!cuentaBancolombia) {
+                const [c] = await Cuenta.create([{ nombre: 'Bancolombia', saldo: 0 }], { session });
+                cuentaBancolombia = c;
+            }
+
+            const [mBancolombia] = await Movimiento.create(
+                [{
+                    fecha: fechaParaGuardar,
+                    tipo: 'recaudo',
+                    descripcion: 'Recaudo Bancolombia del día',
+                    categoria: 'Ventas del día',
+                    monto: rBancolombia,
+                    cuenta: 'Bancolombia',
+                    creadoPor: req.user.id
+                }],
+                { session }
+            );
+            movimientosCreados.push(mBancolombia);
+            cuentaBancolombia.saldo += rBancolombia;
+            await cuentaBancolombia.save({ session });
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({
+            mensaje: '✅ Cierre Diario actualizado correctamente',
+            recaudoEfectivoNeto,
+            movimientos: movimientosCreados
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({
+            mensaje: '❌ Error al editar Cierre Diario',
+            error: error.message
+        });
+    }
+};
+

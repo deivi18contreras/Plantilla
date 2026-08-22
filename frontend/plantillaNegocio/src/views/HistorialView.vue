@@ -133,6 +133,7 @@
             :key="cierre.fecha"
             :cierre="cierre"
             @compartir="abrirCompartirCierre"
+            @editar="iniciarEdicionCierre"
           />
         </div>
       </template>
@@ -187,6 +188,19 @@
 
   <!-- MODAL COMPARTIR CIERRE (DESDE HISTORIAL) -->
   <ModalCompartirCierre v-model="modalCompartir" :texto="textoCompartir" />
+
+  <!-- MODAL VERIFICAR CONTRASEÑA ADMIN -->
+  <ModalVerificarAdmin
+    v-model="modalVerificarAdmin"
+    @autorizado="onAdminAutorizado"
+  />
+
+  <!-- MODAL EDITAR CIERRE DIARIO -->
+  <ModalEditarCierre
+    v-model="modalEditarCierre"
+    :cierre="cierreSeleccionadoParaEditar"
+    @guardado="onCierreEditado"
+  />
 </template>
 
 <script setup>
@@ -200,6 +214,8 @@ import { useQuasar } from 'quasar'
 import * as XLSX from 'xlsx'
 import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
 import CardCierreAgrupado from '@/components/CardCierreAgrupado.vue'
+import ModalVerificarAdmin from '@/components/ModalVerificarAdmin.vue'
+import ModalEditarCierre from '@/components/ModalEditarCierre.vue'
 import { parseFechaLocal, formatFechaLarga, formatFechaCorta, getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
@@ -210,6 +226,10 @@ const configStore = useConfiguracionStore()
 
 const modalCompartir = ref(false)
 const textoCompartir = ref('')
+
+const modalVerificarAdmin = ref(false)
+const modalEditarCierre = ref(false)
+const cierreSeleccionadoParaEditar = ref(null)
 
 const filtroFecha = ref(getFechaLocalHoy())
 const pestanaActiva = ref('movimientos')
@@ -354,6 +374,26 @@ const confirmarEliminar = () => {
       cargandoAccion.value = false
     }
   })
+}
+
+const iniciarEdicionCierre = (cierre) => {
+  if (!authStore.isAdmin) {
+    $q.notify({ type: 'warning', message: '🔒 Solo administradores pueden editar el cierre' })
+    return
+  }
+  cierreSeleccionadoParaEditar.value = cierre
+  modalVerificarAdmin.value = true
+}
+
+const onAdminAutorizado = () => {
+  modalEditarCierre.value = true
+}
+
+const onCierreEditado = async () => {
+  await Promise.all([
+    buscarPorFecha(),
+    cuentasStore.fetchCuentas()
+  ])
 }
 
 const abrirCompartirCierre = (cierre) => {

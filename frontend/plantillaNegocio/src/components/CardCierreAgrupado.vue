@@ -72,8 +72,18 @@
       </div>
     </div>
 
-    <!-- BOTÓN COMPARTIR -->
-    <div class="row justify-end q-mt-sm">
+    <!-- BOTONES DE ACCIÓN: EDITAR Y COMPARTIR -->
+    <div class="row justify-between items-center q-mt-sm" style="flex-wrap: wrap; gap: 8px;">
+      <q-btn
+        flat no-caps
+        icon="edit_note"
+        label="Editar Cierre"
+        color="primary"
+        class="text-weight-bold"
+        style="border-radius: 10px;"
+        @click="$emit('editar', cierre)"
+      />
+
       <q-btn
         flat no-caps
         icon="share"
@@ -97,7 +107,7 @@ defineProps({
   }
 })
 
-defineEmits(['compartir'])
+defineEmits(['compartir', 'editar'])
 
 const formatCOP = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val ?? 0)

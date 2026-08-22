@@ -128,3 +128,40 @@ export const obtenerPerfil = async (req, res) => {
         });
     }
 };
+
+// ─── POST /api/auth/verificar-password ───────────────────────────────────────
+// Valida la contraseña del usuario logueado (solo Admin) para operaciones sensibles
+export const verificarPassword = async (req, res) => {
+    try {
+        const { password } = req.body;
+        if (!password) {
+            return res.status(400).json({ mensaje: '❌ La contraseña es obligatoria' });
+        }
+
+        const usuario = await Usuario.findById(req.user.id).select('password rol');
+        if (!usuario) {
+            return res.status(404).json({ mensaje: '❌ Usuario no encontrado' });
+        }
+
+        if (usuario.rol !== 'admin') {
+            return res.status(403).json({ mensaje: '❌ Acción no autorizada. Solo administradores pueden realizar esta operación' });
+        }
+
+        const esCorrecta = await usuario.compararPassword(password);
+        if (!esCorrecta) {
+            return res.status(401).json({ mensaje: '❌ Contraseña incorrecta' });
+        }
+
+        res.status(200).json({
+            mensaje: '✅ Contraseña verificada correctamente',
+            autorizado: true
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: '❌ Error al verificar contraseña',
+            error: error.message
+        });
+    }
+};
+
