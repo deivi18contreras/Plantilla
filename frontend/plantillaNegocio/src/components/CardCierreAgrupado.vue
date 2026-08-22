@@ -30,6 +30,9 @@
         <div class="q-pa-sm bg-green-50 border border-green-2" style="border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0;">
           <div class="text-caption text-green-7 text-weight-bold">💵 Recaudo Efectivo Neto:</div>
           <div class="text-h6 text-weight-bolder text-green-8">{{ formatCOP(cierre.efectivo) }}</div>
+          <div v-if="cierre.gastosPosterioresEfectivo > 0" class="text-caption text-orange-8 q-mt-xs font-medium">
+            ⚡ -{{ formatCOP(cierre.gastosPosterioresEfectivo) }} en gastos pagados después del cierre
+          </div>
         </div>
       </div>
     </div>

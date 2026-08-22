@@ -267,6 +267,7 @@ const cierresAgrupados = computed(() => {
       if (!grupos[fechaClave]) {
         grupos[fechaClave] = {
           fecha: m.fecha,
+          createdAt: m.createdAt,
           creadoPor: m.creadoPor?.nombre || 'Empleado',
           efectivo: 0,
           nequi: 0,
@@ -280,6 +281,7 @@ const cierresAgrupados = computed(() => {
         grupos[fechaClave].efectivo += m.monto
         // Leemos los gastos externos guardados en este movimiento de cierre
         if (m.gastosExternos) grupos[fechaClave].gastosExternos = m.gastosExternos
+        if (m.createdAt) grupos[fechaClave].createdAt = m.createdAt
       }
       if (m.cuenta === 'Nequi') grupos[fechaClave].nequi += m.monto
       if (m.cuenta === 'Bancolombia') grupos[fechaClave].bancolombia += m.monto
@@ -292,16 +294,25 @@ const cierresAgrupados = computed(() => {
 
   return Object.values(grupos).map(g => {
     const fechaISO = g.fecha ? g.fecha.split('T')[0] : ''
-    const gastosDia = movs
-      .filter(m => m.tipo === 'gasto' && m.fecha && m.fecha.split('T')[0] === fechaISO)
+    const gastosMovs = movs.filter(m => m.tipo === 'gasto' && m.fecha && m.fecha.split('T')[0] === fechaISO)
+    const gastosDia = gastosMovs.reduce((s, m) => s + m.monto, 0)
+
+    // Si hubo gastos en efectivo registrados con timestamp posterior al cierre de caja, se descuentan del efectivo neto
+    const cierreTimestamp = g.createdAt ? new Date(g.createdAt).getTime() : 0
+    const gastosPosterioresEfectivo = gastosMovs
+      .filter(m => m.cuenta === 'Efectivo' && cierreTimestamp > 0 && new Date(m.createdAt).getTime() > cierreTimestamp)
       .reduce((s, m) => s + m.monto, 0)
 
-    const totalCierre = g.efectivo + g.nequi + g.bancolombia
+    const efectivoRestante = Math.max(0, g.efectivo - gastosPosterioresEfectivo)
+    const totalCierre = efectivoRestante + g.nequi + g.bancolombia
     const gastosReales = gastosDia - (g.gastosExternos || 0)
     const totalVenta = totalCierre + gastosReales
 
     return {
       ...g,
+      efectivoOriginal: g.efectivo,
+      efectivo: efectivoRestante,
+      gastosPosterioresEfectivo,
       gastosDia,
       gastosReales,
       totalCierre,
