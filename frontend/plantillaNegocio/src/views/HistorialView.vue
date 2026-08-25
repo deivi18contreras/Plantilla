@@ -273,14 +273,16 @@ const cierresAgrupados = computed(() => {
           nequi: 0,
           bancolombia: 0,
           gastosExternos: 0,
+          devolucionPrestamo: 0,
           observaciones: ''
         }
       }
 
       if (m.cuenta === 'Efectivo') {
         grupos[fechaClave].efectivo += m.monto
-        // Leemos los gastos externos guardados en este movimiento de cierre
+        // Leemos los gastos externos y devoluciones guardadas en este movimiento de cierre
         if (m.gastosExternos) grupos[fechaClave].gastosExternos = m.gastosExternos
+        if (m.devolucionPrestamo) grupos[fechaClave].devolucionPrestamo = m.devolucionPrestamo
         if (m.createdAt) grupos[fechaClave].createdAt = m.createdAt
       }
       if (m.cuenta === 'Nequi') grupos[fechaClave].nequi += m.monto
@@ -298,12 +300,14 @@ const cierresAgrupados = computed(() => {
       .filter(m => m.tipo === 'gasto' && m.fecha && m.fecha.split('T')[0] === fechaISO)
       .reduce((s, m) => s + m.monto, 0)
 
+    const devPrestamo = Number(g.devolucionPrestamo || 0)
     const totalCierre = g.efectivo + g.nequi + g.bancolombia
     const gastosReales = gastosDia - (g.gastosExternos || 0)
-    const totalVenta = totalCierre + gastosReales
+    const totalVenta = totalCierre + gastosReales + devPrestamo
 
     return {
       ...g,
+      devolucionPrestamo: devPrestamo,
       gastosDia,
       gastosReales,
       totalCierre,
@@ -322,17 +326,17 @@ const buscarPorFecha = () => {
 const verTodos = () => {
   filtroFecha.value = ''
   paginaActual.value = 1
-  movimientosStore.fetchPorFecha()
+  movimientosStore.fetchMovimientos()
 }
 
-const abrirModalEdicion = (m) => {
+const abrirModalEdicion = (mov) => {
   formEdit.value = {
-    id: m._id,
-    fecha: m.fecha ? m.fecha.split('T')[0] : new Date().toISOString().split('T')[0],
-    descripcion: m.descripcion || '',
-    monto: m.monto || 0,
-    categoria: m.categoria || '',
-    cuenta: m.cuenta || 'Efectivo'
+    id: mov._id,
+    fecha: mov.fecha ? mov.fecha.split('T')[0] : '',
+    descripcion: mov.descripcion || '',
+    monto: mov.monto,
+    categoria: mov.categoria || '',
+    cuenta: mov.cuenta || 'Efectivo'
   }
   modalEdicion.value = true
 }
@@ -340,13 +344,7 @@ const abrirModalEdicion = (m) => {
 const guardarCambios = async () => {
   cargandoAccion.value = true
   try {
-    await putData(`/movimientos/${formEdit.value.id}`, {
-      fecha: formEdit.value.fecha,
-      descripcion: formEdit.value.descripcion,
-      monto: Number(formEdit.value.monto),
-      categoria: formEdit.value.categoria,
-      cuenta: formEdit.value.cuenta
-    })
+    await putData(`/movimientos/${formEdit.value.id}`, formEdit.value)
     $q.notify({ type: 'positive', message: '✅ Movimiento actualizado' })
     modalEdicion.value = false
     await Promise.all([buscarPorFecha(), cuentasStore.fetchCuentas()])
@@ -405,7 +403,8 @@ const abrirCompartirCierre = (cierre) => {
 ${negocio.toUpperCase()} — ${fechaStr}
 ${'─'.repeat(32)}
 🔴 Gastos del día:   ${formatCOP(cierre.gastosReales)}
-💵 Efectivo neto:    ${formatCOP(cierre.efectivo)}
+💵 Efectivo neto:    ${formatCOP(cierre.efectivo)}${cierre.devolucionPrestamo > 0 ? `
+🔄 Devolución deuda: ${formatCOP(cierre.devolucionPrestamo)}` : ''}
 📱 Nequi:            ${formatCOP(cierre.nequi)}
 🏦 Bancolombia:      ${formatCOP(cierre.bancolombia)}
 ${'─'.repeat(32)}

@@ -63,7 +63,7 @@ export const registrarCierreDiario = async (req, res) => {
     session.startTransaction();
 
     try {
-        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos } = req.body;
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion } = req.body;
 
         if (!fecha) {
             await session.abortTransaction();
@@ -76,13 +76,14 @@ export const registrarCierreDiario = async (req, res) => {
         const rNequi = Number(recaudoNequi || 0);
         const rBancolombia = Number(recaudoBancolombia || 0);
         const gExt = Number(gastosExternos || 0);
+        const devPrestamo = Number(devolucionPrestamo || 0);
 
         // Arqueo Efectivo Neto sobrante (por encima de los $600.000 de base)
         const recaudoEfectivoNeto = Math.max(0, eContado - BASE_EFECTIVO);
 
         const movimientosCreados = [];
 
-        // 1. Procesar Efectivo: El recaudo neto guardado en el movimiento es recaudoEfectivoNeto (ej: $12.000)
+        // 1. Procesar Efectivo: El recaudo neto guardado en el movimiento es recaudoEfectivoNeto
         let cuentaEfectivo = await Cuenta.findOne({ nombre: 'Efectivo' }).session(session);
         if (!cuentaEfectivo) {
             const [c] = await Cuenta.create([{ nombre: 'Efectivo', saldo: BASE_EFECTIVO }], { session });
@@ -98,6 +99,8 @@ export const registrarCierreDiario = async (req, res) => {
                 monto: recaudoEfectivoNeto,
                 cuenta: 'Efectivo',
                 gastosExternos: gExt,
+                devolucionPrestamo: devPrestamo,
+                notaDevolucion: notaDevolucion || '',
                 creadoPor: req.user.id
             }],
             { session }
@@ -551,7 +554,7 @@ export const editarCierreDiario = async (req, res) => {
     session.startTransaction();
 
     try {
-        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos } = req.body;
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion } = req.body;
 
         if (!fecha) {
             await session.abortTransaction();
@@ -593,6 +596,7 @@ export const editarCierreDiario = async (req, res) => {
         const rNequi = Number(recaudoNequi || 0);
         const rBancolombia = Number(recaudoBancolombia || 0);
         const gExt = Number(gastosExternos || 0);
+        const devPrestamo = Number(devolucionPrestamo || 0);
 
         const recaudoEfectivoNeto = Math.max(0, eContado - BASE_EFECTIVO);
         const fechaParaGuardar = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
@@ -614,6 +618,8 @@ export const editarCierreDiario = async (req, res) => {
                 monto: recaudoEfectivoNeto,
                 cuenta: 'Efectivo',
                 gastosExternos: gExt,
+                devolucionPrestamo: devPrestamo,
+                notaDevolucion: notaDevolucion || '',
                 creadoPor: req.user.id
             }],
             { session }

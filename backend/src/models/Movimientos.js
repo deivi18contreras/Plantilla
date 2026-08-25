@@ -34,6 +34,14 @@ const movimientoSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  devolucionPrestamo: {
+    type: Number,
+    default: 0
+  },
+  notaDevolucion: {
+    type: String,
+    default: ''
+  },
   creadoPor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',

@@ -56,6 +56,19 @@
               />
             </div>
 
+            <!-- Devolución de Préstamo / Reposición -->
+            <div class="q-mb-sm">
+              <div class="text-caption text-slate-500 q-mb-xs">🔄 Devolución de préstamo / Reposición (se resta del efectivo):</div>
+              <q-input
+                v-model="form.devolucionPrestamo"
+                type="number"
+                placeholder="$ 0"
+                prefix="$"
+                borderless
+                class="clean-input"
+              />
+            </div>
+
             <!-- Recaudo Efectivo Neto Calculado -->
             <div class="row items-center justify-between q-pa-sm bg-slate-50" style="border-radius: 12px; border: 1px solid #e2e8f0;">
               <span class="text-caption text-slate-600 font-medium">Recaudo Efectivo Neto:</span>
@@ -200,6 +213,7 @@ const guardando = ref(false)
 const form = ref({
   efectivoContado: 0,
   cadena: 0,
+  devolucionPrestamo: 0,
   recaudoNequi: 0,
   recaudoBancolombia: 0,
   gastosExternos: 0,
@@ -211,8 +225,9 @@ const BASE_EFECTIVO = 600000
 watch(() => props.cierre, (c) => {
   if (c) {
     form.value = {
-      efectivoContado: (c.efectivo || 0) > 0 ? (c.efectivo + BASE_EFECTIVO) : BASE_EFECTIVO,
+      efectivoContado: (c.efectivo || 0) > 0 ? (c.efectivo + BASE_EFECTIVO + (c.devolucionPrestamo || 0)) : BASE_EFECTIVO,
       cadena: 0,
+      devolucionPrestamo: c.devolucionPrestamo || 0,
       recaudoNequi: c.nequi || 0,
       recaudoBancolombia: c.bancolombia || 0,
       gastosExternos: c.gastosExternos || 0,
@@ -232,7 +247,8 @@ const formatCOP = (val) =>
 const recaudoEfectivoNeto = computed(() => {
   const contado = Number(form.value.efectivoContado || 0)
   const cadena = Number(form.value.cadena || 0)
-  return Math.max(0, contado - BASE_EFECTIVO - cadena)
+  const devPrestamo = Number(form.value.devolucionPrestamo || 0)
+  return Math.max(0, contado - BASE_EFECTIVO - cadena - devPrestamo)
 })
 
 const totalCierre = computed(() => {
@@ -246,7 +262,8 @@ const gastosReales = computed(() => {
 })
 
 const totalVenta = computed(() => {
-  return totalCierre.value + gastosReales.value
+  const devPrestamo = Number(form.value.devolucionPrestamo || 0)
+  return totalCierre.value + gastosReales.value + devPrestamo
 })
 
 const guardar = async () => {
@@ -255,7 +272,8 @@ const guardar = async () => {
   guardando.value = true
   try {
     const cadenaApartada = Number(form.value.cadena || 0)
-    const efectivoAjustado = Number(form.value.efectivoContado || 0) - cadenaApartada
+    const devPrestamo = Number(form.value.devolucionPrestamo || 0)
+    const efectivoAjustado = Number(form.value.efectivoContado || 0) - cadenaApartada - devPrestamo
 
     await putData('/movimientos/cierre-diario', {
       fecha: props.cierre.fecha,
@@ -263,6 +281,7 @@ const guardar = async () => {
       recaudoNequi: Number(form.value.recaudoNequi || 0),
       recaudoBancolombia: Number(form.value.recaudoBancolombia || 0),
       gastosExternos: Number(form.value.gastosExternos || 0),
+      devolucionPrestamo: devPrestamo,
       observaciones: form.value.observaciones
     })
 

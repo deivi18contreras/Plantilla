@@ -63,10 +63,28 @@
             placeholder="$ 0"
             prefix="$"
             borderless
-            class="clean-input q-mb-sm"
+            class="clean-input q-mb-xs"
             style="border: 1px solid #fb923c; border-radius: 10px;"
           />
           <div class="text-caption text-orange-7 q-mb-sm">💡 Esta plata ya está registrada como gasto — se resta del arqueo automáticamente.</div>
+
+          <!-- Campo Devolución de Préstamo / Reposición a Reserva -->
+          <div class="row items-center q-gutter-x-sm q-mb-xs q-mt-sm">
+            <q-icon name="sync_alt" color="blue-8" size="18px" />
+            <span class="text-caption text-weight-bold text-blue-9">🔄 Devolución de préstamo / Reposición (se resta del efectivo):</span>
+          </div>
+          <q-input
+            v-model="form.devolucionPrestamo"
+            type="number"
+            placeholder="$ 0"
+            prefix="$"
+            borderless
+            class="clean-input q-mb-xs"
+            style="border: 1px solid #93c5fd; border-radius: 10px;"
+          />
+          <div class="text-caption text-slate-500 q-mb-sm" style="font-size: 11px;">
+            💡 Ej: plata que sacas para devolver a tu mamá o reponer reservas de días pesados. Descuenta del cajón sin duplicar gastos.
+          </div>
 
           <!-- Resultado del Arqueo -->
           <div class="row items-center justify-between q-pa-sm bg-white" style="border-radius: 10px; border: 1px solid #bae6fd; gap: 8px; flex-wrap: wrap;">
@@ -250,6 +268,7 @@ const form = ref({
   fecha: getFechaLocalHoy(),
   efectivoContado: null,
   cadena: 125000,
+  devolucionPrestamo: null,
   recaudoNequi: null,
   recaudoBancolombia: null,
   gastosExternos: null,
@@ -257,11 +276,12 @@ const form = ref({
 })
 
 const BASE_EFECTIVO = computed(() => configStore.baseFija)
+const devolucionNum = computed(() => Math.max(0, Number(form.value.devolucionPrestamo || 0)))
 
 const recaudoEfectivoNeto = computed(() => {
   const eContado = Number(form.value.efectivoContado || 0)
   const cadenaApartada = Number(form.value.cadena || 0)
-  return Math.max(0, eContado - cadenaApartada - BASE_EFECTIVO.value)
+  return Math.max(0, eContado - cadenaApartada - devolucionNum.value - BASE_EFECTIVO.value)
 })
 
 // CIERRE = EFECTIVO NETO + NEQUI + BANCOLOMBIA (Igual a tu hoja física)
@@ -272,9 +292,9 @@ const totalCierreLiquid = computed(() => {
 // Gastos externos (préstamos, plata de meses anteriores) que NO cuentan como venta real
 const gastosExternosNum = computed(() => Math.max(0, Number(form.value.gastosExternos || 0)))
 
-// VENTA REAL = (Gastos del día - Gastos Externos) + Cierre
+// VENTA REAL = (Gastos del día - Gastos Externos) + Cierre + Devolución de préstamos (que salieron de las ventas)
 const totalVentaDia = computed(() => {
-  return (totalGastosDia.value - gastosExternosNum.value) + totalCierreLiquid.value
+  return (totalGastosDia.value - gastosExternosNum.value) + totalCierreLiquid.value + devolucionNum.value
 })
 
 const formatCOP = (val) =>
@@ -311,7 +331,8 @@ const generarTextoWhatsApp = () => {
 ${negocio.toUpperCase()} — ${fechaStr}
 ${'─'.repeat(32)}
 🔴 Gastos del día:   ${formatCOP(gastos)}
-💵 Efectivo neto:    ${formatCOP(recaudoEfectivoNeto.value)}
+💵 Efectivo neto:    ${formatCOP(recaudoEfectivoNeto.value)}${devolucionNum.value > 0 ? `
+🔄 Devolución deuda: ${formatCOP(devolucionNum.value)}` : ''}
 📱 Nequi:            ${formatCOP(Number(form.value.recaudoNequi || 0))}
 🏦 Bancolombia:      ${formatCOP(Number(form.value.recaudoBancolombia || 0))}
 ${'─'.repeat(32)}
@@ -342,13 +363,15 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const cadenaApartada = Number(form.value.cadena || 0)
-    const efectivoAjustado = Number(form.value.efectivoContado || 0) - cadenaApartada
+    const devPrestamo = devolucionNum.value
+    const efectivoAjustado = Number(form.value.efectivoContado || 0) - cadenaApartada - devPrestamo
     await postData('/movimientos/cierre-diario', {
       fecha: form.value.fecha,
       efectivoContado: efectivoAjustado,
       recaudoNequi: Number(form.value.recaudoNequi || 0),
       recaudoBancolombia: Number(form.value.recaudoBancolombia || 0),
       gastosExternos: Number(form.value.gastosExternos || 0),
+      devolucionPrestamo: devPrestamo,
       observaciones: form.value.observaciones
     })
 
