@@ -8,7 +8,7 @@
       <div class="text-center q-mb-lg">
         <q-avatar size="56px" color="blue-1" text-color="primary" icon="storefront" class="q-mb-xs" />
         <div class="text-h5 text-weight-bolder text-slate-900">
-          Finanzas <span class="text-primary">Negocio</span>
+          Polleria Lb
         </div>
         <div class="text-slate-500 text-caption">Control financiero diario</div>
       </div>
@@ -18,32 +18,17 @@
 
         <div>
           <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">Correo electrónico</div>
-          <q-input
-            v-model="email"
-            type="email"
-            placeholder="deivibogoya@gmail.com"
-            borderless
-            class="clean-input"
-            :rules="[val => !!val || 'El correo es obligatorio']"
-          />
+          <q-input v-model="email" type="email" borderless class="clean-input"
+            :rules="[val => !!val || 'El correo es obligatorio']" />
         </div>
 
         <div>
           <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">Contraseña</div>
-          <q-input
-            v-model="password"
-            :type="showPass ? 'text' : 'password'"
-            placeholder="••••••••"
-            borderless
-            class="clean-input"
-            :rules="[val => !!val || 'La contraseña es obligatoria']"
-          >
+          <q-input v-model="password" :type="showPass ? 'text' : 'password'"  borderless
+            class="clean-input" :rules="[val => !!val || 'La contraseña es obligatoria']">
             <template v-slot:append>
-              <q-icon
-                :name="showPass ? 'visibility_off' : 'visibility'"
-                class="cursor-pointer text-slate-400"
-                @click="showPass = !showPass"
-              />
+              <q-icon :name="showPass ? 'visibility_off' : 'visibility'" class="cursor-pointer text-slate-400"
+                @click="showPass = !showPass" />
             </template>
           </q-input>
         </div>

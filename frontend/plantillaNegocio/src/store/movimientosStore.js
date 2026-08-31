@@ -28,10 +28,23 @@ export const useMovimientosStore = defineStore('movimientos', {
   },
 
   actions: {
+    async fetchMovimientos() {
+      this.loading = true
+      try {
+        this.movimientos = await getData('/movimientos')
+      } catch (error) {
+        console.error('Error al cargar movimientos:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+
     async fetchPorFecha(fecha) {
       this.loading = true
       try {
         this.movimientos = await getData('/movimientos', { fecha })
+        const params = fecha ? { fecha } : {}
+        this.movimientos = await getData('/movimientos', params)
       } catch (error) {
         console.error('Error al cargar movimientos:', error)
       } finally {
