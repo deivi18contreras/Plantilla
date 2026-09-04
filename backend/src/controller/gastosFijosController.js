@@ -189,3 +189,4 @@ export const desactivarGastoFijo = async (req, res) => {
     res.status(500).json({ mensaje: '❌ Error al desactivar gasto fijo', error: error.message })
   }
 }
+

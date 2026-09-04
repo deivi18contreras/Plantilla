@@ -30,3 +30,4 @@ router.post('/:id/confirmar-pago', verificarToken, confirmarPagoGastoFijo)
 router.delete('/:id', verificarToken, soloAdmin, desactivarGastoFijo)
 
 export default router
+

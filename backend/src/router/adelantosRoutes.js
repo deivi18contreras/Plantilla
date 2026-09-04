@@ -18,3 +18,4 @@ router.get('/pendientes', verificarToken, listarAdelantosPendientes)
 router.post('/', verificarToken, soloAdmin, registrarAdelanto)
 
 export default router
+

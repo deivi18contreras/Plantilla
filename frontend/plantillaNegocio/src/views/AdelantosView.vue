@@ -170,7 +170,7 @@ import { ref, onMounted } from 'vue'
 import { useAdelantosStore } from '@/store/adelantosStore'
 import { useAuthStore } from '@/store/authStore'
 import { useQuasar } from 'quasar'
-import { getFechaLocalHoy } from '@/utils/dateUtils'
+import { getFechaLocalHoy, parseFechaLocal } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const adelantosStore = useAdelantosStore()
@@ -186,7 +186,7 @@ const formatCOP = (val) =>
 
 const formatFecha = (fechaStr) => {
   if (!fechaStr) return ''
-  return new Date(fechaStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return parseFechaLocal(fechaStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 const cargarTodos = async () => {
@@ -218,3 +218,4 @@ const guardarAdelanto = async () => {
 
 onMounted(() => adelantosStore.fetchPendientes())
 </script>
+

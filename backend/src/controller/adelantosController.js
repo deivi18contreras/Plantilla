@@ -140,3 +140,4 @@ export const abonarAdelantos = async (montoDisponible, session) => {
     remanente: montoRestante // lo que queda como ganancia neta real
   }
 }
+

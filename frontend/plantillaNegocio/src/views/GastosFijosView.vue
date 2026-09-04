@@ -160,7 +160,7 @@ import { ref, onMounted } from 'vue'
 import { useGastosFijosStore } from '@/store/gastosFijosStore'
 import { useAuthStore } from '@/store/authStore'
 import { useQuasar } from 'quasar'
-import { getFechaLocalHoy } from '@/utils/dateUtils'
+import { getFechaLocalHoy, parseFechaLocal } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const gastosFijosStore = useGastosFijosStore()
@@ -187,12 +187,18 @@ const formatCOP = (val) =>
 
 const formatFecha = (fechaStr) => {
   if (!fechaStr) return ''
-  return new Date(fechaStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  // parseFechaLocal evita el bug de zona horaria (UTC-5 Colombia)
+  return parseFechaLocal(fechaStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 const estaVencido = (fechaStr) => {
   if (!fechaStr) return false
-  return new Date(fechaStr) < new Date()
+  // Comparar solo fechas sin hora para evitar falsas alarmas por hora del día
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const vencimiento = parseFechaLocal(fechaStr)
+  vencimiento.setHours(0, 0, 0, 0)
+  return vencimiento < hoy
 }
 
 const iconoPeriodo = (p) => {
@@ -265,3 +271,4 @@ const confirmarPago = (gf) => {
 
 onMounted(() => gastosFijosStore.fetchGastosFijos())
 </script>
+

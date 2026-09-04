@@ -40,3 +40,4 @@ const gastoFijoSchema = new mongoose.Schema({
 
 const GastoFijo = mongoose.model('GastoFijo', gastoFijoSchema)
 export default GastoFijo
+

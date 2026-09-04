@@ -60,3 +60,4 @@ export const useGastosFijosStore = defineStore('gastosFijos', {
     }
   }
 })
+
