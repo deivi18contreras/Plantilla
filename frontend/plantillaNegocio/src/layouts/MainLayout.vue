@@ -175,6 +175,36 @@
               </q-item-section>
               <q-item-section class="text-weight-bold">Configuraciones</q-item-section>
             </q-item>
+
+            <!-- ADELANTOS INTERNOS -->
+            <q-item
+              clickable
+              v-ripple
+              :active="$route.path === '/adelantos'"
+              active-class="menu-item-active"
+              class="menu-item-custom"
+              @click="navTo('/adelantos')"
+            >
+              <q-item-section avatar min-width="36px">
+                <q-icon name="savings" size="22px" color="red-6" />
+              </q-item-section>
+              <q-item-section class="text-weight-bold">Adelantos Internos</q-item-section>
+            </q-item>
+
+            <!-- GASTOS FIJOS -->
+            <q-item
+              clickable
+              v-ripple
+              :active="$route.path === '/gastos-fijos'"
+              active-class="menu-item-active"
+              class="menu-item-custom"
+              @click="navTo('/gastos-fijos')"
+            >
+              <q-item-section avatar min-width="36px">
+                <q-icon name="event_repeat" size="22px" color="orange-7" />
+              </q-item-section>
+              <q-item-section class="text-weight-bold">Gastos Fijos</q-item-section>
+            </q-item>
           </template>
         </q-list>
       </div>

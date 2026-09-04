@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import Movimiento from '../models/Movimientos.js';
 import Cuenta from '../models/Cuentas.js';
+import { abonarAdelantos } from './adelantosController.js';
+
 
 // ─── POST /api/movimientos/gasto ──────────────────────────────────────────────
 export const registrarGasto = async (req, res) => {
@@ -163,12 +165,19 @@ export const registrarCierreDiario = async (req, res) => {
             await cuentaBancolombia.save({ session });
         }
 
+        // ── Abonar adelantos pendientes (FIFO) con el recaudo neto de efectivo ──
+        // El recaudoEfectivoNeto va primero a saldar deudas internas antes de
+        // considerarse ganancia libre del día.
+        const { montoAplicado, remanente } = await abonarAdelantos(recaudoEfectivoNeto, session);
+
         await session.commitTransaction();
         session.endSession();
 
         res.status(201).json({
             mensaje: '✅ Cierre Diario completo registrado exitosamente',
             recaudoEfectivoNeto,
+            montoAbonadoAdelantos: montoAplicado,   // cuánto fue a pagar adelantos
+            gananciaNetaDia: remanente,              // ganancia real del día
             movimientos: movimientosCreados
         });
 

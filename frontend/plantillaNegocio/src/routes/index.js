@@ -69,6 +69,18 @@ const routes = [
         name: 'categorias',
         component: () => import('@/views/CategoriasView.vue'),
         meta: { requiresAdmin: true }
+      },
+      {
+        path: 'adelantos',
+        name: 'adelantos',
+        component: () => import('@/views/AdelantosView.vue'),
+        meta: { requiresAdmin: true }
+      },
+      {
+        path: 'gastos-fijos',
+        name: 'gastos-fijos',
+        component: () => import('@/views/GastosFijosView.vue'),
+        meta: { requiresAdmin: true }
       }
     ]
   }

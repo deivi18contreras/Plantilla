@@ -321,11 +321,6 @@ const formEdit = ref({ id: '', fecha: '', descripcion: '', monto: 0, categoria: 
 const buscarPorFecha = () => {
   paginaActual.value = 1
   movimientosStore.fetchPorFecha(filtroFecha.value)
-  if (!filtroFecha.value) {
-    movimientosStore.fetchMovimientos()
-  } else {
-    movimientosStore.fetchPorFecha(filtroFecha.value)
-  }
 }
 
 const verTodos = () => {
