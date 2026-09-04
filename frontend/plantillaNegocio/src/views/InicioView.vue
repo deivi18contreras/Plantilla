@@ -195,7 +195,69 @@
       </div>
     </div>
 
-    <!-- ═══ FILA 3: GRÁFICA SEMANAL + ACCIONES RÁPIDAS ═══ -->
+    <!-- ═══ FILA 3: RESUMEN DE DEUDAS INTERNAS ═══ -->
+    <!-- Solo aparece si hay adelantos pendientes -->
+    <div v-if="adelantosStore.pendientes.length > 0" class="q-mb-md">
+      <div class="card-widget">
+        <!-- Cabecera -->
+        <div class="row items-center justify-between q-mb-md">
+          <div class="row items-center q-gutter-x-sm">
+            <q-icon name="savings" color="red-6" size="24px" />
+            <div>
+              <div class="text-subtitle1 text-weight-bolder text-slate-900">Deudas internas pendientes</div>
+              <div class="text-caption text-slate-500">Se descuentan automáticamente en cada cierre de caja</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-caption text-slate-500">Total a recuperar</div>
+            <div class="text-h6 text-weight-bolder text-red-7">{{ formatCOP(adelantosStore.totalPendiente) }}</div>
+          </div>
+        </div>
+
+        <!-- Lista de adelantos -->
+        <div class="row q-col-gutter-sm">
+          <div
+            v-for="a in adelantosStore.pendientes"
+            :key="a._id"
+            class="col-12 col-sm-6 col-md-4"
+          >
+            <div class="q-pa-sm" style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 12px;">
+              <!-- Motivo y fecha -->
+              <div class="text-caption text-weight-bold text-slate-800 q-mb-xs" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ a.motivo || 'Sin motivo especificado' }}
+              </div>
+              <div class="text-caption text-slate-500 q-mb-sm">{{ formatFechaCorta(a.fecha) }}</div>
+
+              <!-- Barra de progreso de recuperación -->
+              <div style="background: #fee2e2; border-radius: 6px; height: 6px; overflow: hidden;" class="q-mb-xs">
+                <div
+                  :style="`width: ${Math.round((a.montoRecuperado / a.monto) * 100)}%; background: #ef4444; height: 100%; border-radius: 6px; transition: width 0.3s;`"
+                />
+              </div>
+
+              <!-- Montos -->
+              <div class="row justify-between">
+                <div>
+                  <div class="text-caption text-slate-400">Recuperado</div>
+                  <div class="text-caption text-weight-bold text-green-6">{{ formatCOP(a.montoRecuperado) }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-caption text-slate-400">Pendiente</div>
+                  <div class="text-caption text-weight-bold text-red-6">{{ formatCOP(a.saldoPendiente) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón ver detalle -->
+        <div class="text-right q-mt-sm">
+          <q-btn flat no-caps dense color="red-6" label="Ver todos los adelantos →" style="font-size: 12px;" @click="$router.push('/adelantos')" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FILA 4: GRÁFICA SEMANAL + ACCIONES RÁPIDAS ═══ -->
     <div class="row q-col-gutter-sm q-col-gutter-md-lg">
 
       <!-- GRÁFICA SEMANAL -->
