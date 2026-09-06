@@ -205,6 +205,21 @@
               </q-item-section>
               <q-item-section class="text-weight-bold">Gastos Fijos</q-item-section>
             </q-item>
+
+            <!-- MIS AHORROS -->
+            <q-item
+              clickable
+              v-ripple
+              :active="$route.path === '/ahorros'"
+              active-class="menu-item-active"
+              class="menu-item-custom"
+              @click="navTo('/ahorros')"
+            >
+              <q-item-section avatar min-width="36px">
+                <q-icon name="account_balance_wallet" size="22px" color="green-7" />
+              </q-item-section>
+              <q-item-section class="text-weight-bold">Mis Ahorros</q-item-section>
+            </q-item>
           </template>
         </q-list>
       </div>

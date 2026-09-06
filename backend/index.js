@@ -11,6 +11,7 @@ import usuariosRoutes from './src/router/usuariosRoutes.js';
 import configuracionRoutes from './src/router/configuracionRoutes.js';
 import adelantosRoutes from './src/router/adelantosRoutes.js';
 import gastosFijosRoutes from './src/router/gastosFijosRoutes.js';
+import ahorrosRoutes from './src/router/ahorrosRoutes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/configuracion', configuracionRoutes);
 app.use('/api/adelantos', adelantosRoutes);
 app.use('/api/gastos-fijos', gastosFijosRoutes);
+app.use('/api/ahorros', ahorrosRoutes);
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto: ${PORT}`);

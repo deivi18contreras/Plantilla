@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Movimiento from '../models/Movimientos.js';
 import Cuenta from '../models/Cuentas.js';
 import { abonarAdelantos } from './adelantosController.js';
+import { registrarAhorroMes } from './ahorrosController.js';
 
 
 // ─── POST /api/movimientos/gasto ──────────────────────────────────────────────
@@ -170,15 +171,47 @@ export const registrarCierreDiario = async (req, res) => {
         // considerarse ganancia libre del día.
         const { montoAplicado, remanente } = await abonarAdelantos(recaudoEfectivoNeto, session, new Date(fecha));
 
+        // ── Detectar si es el último día del mes → registrar ahorro automáticamente ──
+        const fechaCierre = new Date(fecha)
+        const ultimoDiaDelMes = new Date(
+          fechaCierre.getFullYear(),
+          fechaCierre.getMonth() + 1,
+          0  // día 0 del mes siguiente = último día del mes actual
+        ).getDate()
+
+        let ahorroDelMes = null
+        if (fechaCierre.getDate() === ultimoDiaDelMes) {
+          // Es el último día del mes: leer saldos actuales de todas las cuentas
+          const [cEfectivo, cNequi, cBancolombia] = await Promise.all([
+            Cuenta.findOne({ nombre: 'Efectivo' }).session(session),
+            Cuenta.findOne({ nombre: 'Nequi' }).session(session),
+            Cuenta.findOne({ nombre: 'Bancolombia' }).session(session)
+          ])
+
+          ahorroDelMes = await registrarAhorroMes({
+            fecha: fechaCierre,
+            saldoEfectivo: cEfectivo?.saldo || 0,
+            saldoNequi: cNequi?.saldo || 0,
+            saldoBancolombia: cBancolombia?.saldo || 0,
+            userId: req.user.id,
+            session
+          })
+        }
+
         await session.commitTransaction();
         session.endSession();
 
         res.status(201).json({
             mensaje: '✅ Cierre Diario completo registrado exitosamente',
             recaudoEfectivoNeto,
-            montoAbonadoAdelantos: montoAplicado,   // cuánto fue a pagar adelantos
-            gananciaNetaDia: remanente,              // ganancia real del día
-            movimientos: movimientosCreados
+            montoAbonadoAdelantos: montoAplicado,
+            gananciaNetaDia: remanente,
+            movimientos: movimientosCreados,
+            // Si fue el último día del mes, incluir el resumen del ahorro
+            ...(ahorroDelMes && {
+              ahorroMes: ahorroDelMes,
+              mensajeAhorro: `🎉 ¡Cerraste el mes! Ahorro registrado: $${ahorroDelMes.total.toLocaleString('es-CO')}`
+            })
         });
 
     } catch (error) {

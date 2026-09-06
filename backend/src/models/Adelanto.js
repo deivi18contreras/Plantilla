@@ -39,6 +39,7 @@ const adelantoSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',
     required: true
+  }
   },
 
   // Historial de cada abono que se le ha hecho a este adelanto

@@ -89,6 +89,7 @@ export const obtenerResumenMes = async (req, res) => {
             });
         }
 
+        // ── Mes anterior (para comparativa) ──────────────────────────────────
         // ── Mes anterior ──────────────────────────────────────────────────────
         const mesAntYear  = month === 1 ? year - 1 : year
         const mesAntMonth = month === 1 ? 12 : month - 1
