@@ -168,7 +168,7 @@ export const registrarCierreDiario = async (req, res) => {
         // ── Abonar adelantos pendientes (FIFO) con el recaudo neto de efectivo ──
         // El recaudoEfectivoNeto va primero a saldar deudas internas antes de
         // considerarse ganancia libre del día.
-        const { montoAplicado, remanente } = await abonarAdelantos(recaudoEfectivoNeto, session);
+        const { montoAplicado, remanente } = await abonarAdelantos(recaudoEfectivoNeto, session, new Date(fecha));
 
         await session.commitTransaction();
         session.endSession();

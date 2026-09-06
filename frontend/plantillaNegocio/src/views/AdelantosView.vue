@@ -78,10 +78,27 @@
             </q-item-section>
             <q-item-section>
               <div class="text-weight-bold text-slate-900">{{ a.motivo || 'Sin motivo especificado' }}</div>
-              <div class="text-caption text-slate-500">
+              <div class="text-caption text-slate-500 q-mb-xs">
                 Fecha: {{ formatFecha(a.fecha) }}
                 · Recuperado: {{ formatCOP(a.montoRecuperado) }}
               </div>
+              <!-- Historial de abonos -->
+              <div v-if="a.abonos && a.abonos.length > 0">
+                <div
+                  class="text-caption text-primary cursor-pointer q-mb-xs"
+                  @click="toggleAbonos(a._id)"
+                >
+                  {{ abonosAbiertos.includes(a._id) ? '▲ Ocultar' : '▼ Ver' }} abonos ({{ a.abonos.length }})
+                </div>
+                <div v-if="abonosAbiertos.includes(a._id)" class="column q-gutter-y-xs q-pl-sm" style="border-left: 2px solid #bfdbfe;">
+                  <div v-for="(abono, i) in a.abonos" :key="i" class="row justify-between text-caption">
+                    <span class="text-slate-500">{{ formatFecha(abono.fecha) }}</span>
+                    <span class="text-green-7 text-weight-bold">+{{ formatCOP(abono.monto) }}</span>
+                    <span class="text-slate-400">Saldo: {{ formatCOP(abono.saldoAntes) }} → {{ formatCOP(abono.saldoDespues) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-caption text-slate-400">Sin abonos aún</div>
             </q-item-section>
             <q-item-section side>
               <div class="text-right">
@@ -180,6 +197,14 @@ const tab = ref('pendientes')
 const modalNuevo = ref(false)
 const guardando = ref(false)
 const form = ref({ fecha: getFechaLocalHoy(), monto: '', motivo: '' })
+// IDs de adelantos con el historial de abonos desplegado
+const abonosAbiertos = ref([])
+
+const toggleAbonos = (id) => {
+  const idx = abonosAbiertos.value.indexOf(id)
+  if (idx === -1) abonosAbiertos.value.push(id)
+  else abonosAbiertos.value.splice(idx, 1)
+}
 
 const formatCOP = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val ?? 0)

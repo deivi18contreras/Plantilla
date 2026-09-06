@@ -99,12 +99,13 @@ export const listarTodosAdelantos = async (req, res) => {
 //
 // Recibe:
 //   - montoDisponible: el recaudo neto de efectivo del día
+//   - fechaCierre: la fecha del cierre (para registrar en el historial del abono)
 //   - session: la sesión de Mongoose activa
 //
 // Devuelve:
 //   - montoAplicado: cuánto se destinó a pagar adelantos
 //   - remanente: cuánto queda como ganancia real del día
-export const abonarAdelantos = async (montoDisponible, session) => {
+export const abonarAdelantos = async (montoDisponible, session, fechaCierre = new Date()) => {
   // Traer adelantos pendientes, del más antiguo al más reciente (FIFO)
   const pendientes = await Adelanto.find({ estado: 'pendiente' })
     .sort({ fecha: 1 })
@@ -117,19 +118,39 @@ export const abonarAdelantos = async (montoDisponible, session) => {
     // Si ya no queda plata para abonar, parar
     if (montoRestante <= 0) break
 
+    const saldoAntes = adelanto.saldoPendiente
+
     if (montoRestante >= adelanto.saldoPendiente) {
       // Alcanza para cubrir este adelanto completo
-      montoAplicado += adelanto.saldoPendiente
-      montoRestante -= adelanto.saldoPendiente
-      adelanto.montoRecuperado += adelanto.saldoPendiente
+      const abonoDelDia = adelanto.saldoPendiente
+      montoAplicado += abonoDelDia
+      montoRestante -= abonoDelDia
+      adelanto.montoRecuperado += abonoDelDia
       adelanto.saldoPendiente = 0
       adelanto.estado = 'recuperado'
+
+      // Registrar el abono en el historial del adelanto
+      adelanto.abonos.push({
+        fecha: fechaCierre,
+        monto: abonoDelDia,
+        saldoAntes,
+        saldoDespues: 0
+      })
     } else {
       // Solo alcanza para un abono parcial
-      montoAplicado += montoRestante
-      adelanto.montoRecuperado += montoRestante
-      adelanto.saldoPendiente -= montoRestante
+      const abonoDelDia = montoRestante
+      montoAplicado += abonoDelDia
+      adelanto.montoRecuperado += abonoDelDia
+      adelanto.saldoPendiente -= abonoDelDia
       montoRestante = 0
+
+      // Registrar el abono parcial en el historial del adelanto
+      adelanto.abonos.push({
+        fecha: fechaCierre,
+        monto: abonoDelDia,
+        saldoAntes,
+        saldoDespues: adelanto.saldoPendiente
+      })
     }
 
     await adelanto.save({ session })

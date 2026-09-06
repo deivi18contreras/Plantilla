@@ -1,4 +1,5 @@
 import Movimiento from '../models/Movimientos.js';
+import Adelanto from '../models/Adelanto.js';
 
 // ─── GET /api/resumen ─────────────────────────────────────────────────────────
 // Query params: mes=YYYY-MM (opcional, por defecto mes actual)
@@ -88,7 +89,7 @@ export const obtenerResumenMes = async (req, res) => {
             });
         }
 
-        // ── Mes anterior (para comparativa) ──────────────────────────────────
+        // ── Mes anterior ──────────────────────────────────────────────────────
         const mesAntYear  = month === 1 ? year - 1 : year
         const mesAntMonth = month === 1 ? 12 : month - 1
         const inicioAnt   = new Date(Date.UTC(mesAntYear, mesAntMonth - 1, 1, 0, 0, 0, 0))
@@ -102,11 +103,33 @@ export const obtenerResumenMes = async (req, res) => {
         })
         const ventaAnt = recaudosAnt + gastosAnt
 
+        // ── Adelantos abonados en este mes ────────────────────────────────────
+        // Buscamos todos los adelantos que tengan al menos un abono en el rango del mes
+        const adelantosConAbonos = await Adelanto.find({
+            'abonos.fecha': { $gte: inicio, $lte: fin }
+        })
+
+        // Sumamos solo los abonos que caen dentro del mes consultado
+        let totalAbonadoAdelantosMes = 0
+        adelantosConAbonos.forEach(adelanto => {
+            adelanto.abonos.forEach(abono => {
+                const fechaAbono = new Date(abono.fecha)
+                if (fechaAbono >= inicio && fechaAbono <= fin) {
+                    totalAbonadoAdelantosMes += abono.monto
+                }
+            })
+        })
+
+        // Ganancia real = lo que quedó en cuentas (recaudos) MENOS lo que se fue a pagar deudas internas
+        const gananciaRealMes = neto - totalAbonadoAdelantosMes
+
         res.status(200).json({
             mes: mes || `${year}-${String(month).padStart(2, '0')}`,
             totalRecaudos: totalVentaBrutaMes,
             totalGastos,
             neto,
+            totalAbonadoAdelantosMes,   // cuánto se pagó de adelantos internos este mes
+            gananciaRealMes,             // ganancia real descontando adelantos
             gastosPorCategoria,
             recaudosPorCuenta,
             semanaActual: semanaData,

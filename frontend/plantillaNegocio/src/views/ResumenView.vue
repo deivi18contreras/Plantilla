@@ -74,6 +74,20 @@
           </div>
         </div>
 
+        <!-- Desglose de adelantos si hay -->
+        <div v-if="resumen.totalAbonadoAdelantosMes > 0" class="q-mb-md">
+          <div class="q-pa-md" style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px;">
+            <div class="row items-center justify-between q-mb-xs">
+              <div class="text-caption text-weight-bold text-orange-8">💸 Adelantos internos recuperados este mes</div>
+              <span class="text-subtitle2 text-weight-bolder text-orange-7">- {{ formatCOP(resumen.totalAbonadoAdelantosMes) }}</span>
+            </div>
+            <div class="row items-center justify-between">
+              <div class="text-caption text-slate-600">Ganancia real (descontando lo que se pagó de adelantos)</div>
+              <span class="text-subtitle1 text-weight-bolder text-green-7">{{ formatCOP(resumen.gananciaRealMes) }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Desglose por Cuenta -->
         <div class="q-mb-md">
           <div class="text-subtitle2 text-weight-bold text-slate-700 q-mb-sm">Plata Guardada por Cuenta (Cierres del Mes)</div>
@@ -206,6 +220,8 @@ const resumen = ref({
   totalRecaudos: 0,
   totalGastos: 0,
   neto: 0,
+  totalAbonadoAdelantosMes: 0,
+  gananciaRealMes: 0,
   gastosPorCategoria: [],
   recaudosPorCuenta: { Efectivo: 0, Nequi: 0, Bancolombia: 0 },
   mesAnterior: null

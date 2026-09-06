@@ -195,6 +195,7 @@
       </div>
     </div>
 
+    <!-- ═══ FILA 3: GRÁFICA SEMANAL + ACCIONES RÁPIDAS ═══ -->
     <!-- ═══ FILA 3: RESUMEN DE DEUDAS INTERNAS ═══ -->
     <!-- Solo aparece si hay adelantos pendientes -->
     <div v-if="adelantosStore.pendientes.length > 0" class="q-mb-md">
