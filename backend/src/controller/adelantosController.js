@@ -99,13 +99,12 @@ export const listarTodosAdelantos = async (req, res) => {
 //
 // Recibe:
 //   - montoDisponible: el recaudo neto de efectivo del día
-//   - fechaCierre: la fecha del cierre (para registrar en el historial del abono)
 //   - session: la sesión de Mongoose activa
+//   - fechaCierre: la fecha del cierre (para registrar en el historial del abono)
 //
 // Devuelve:
 //   - montoAplicado: cuánto se destinó a pagar adelantos
 //   - remanente: cuánto queda como ganancia real del día
-export const abonarAdelantos = async (montoDisponible, session) => {
 export const abonarAdelantos = async (montoDisponible, session, fechaCierre = new Date()) => {
   // Traer adelantos pendientes, del más antiguo al más reciente (FIFO)
   const pendientes = await Adelanto.find({ estado: 'pendiente' })
@@ -123,9 +122,6 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
 
     if (montoRestante >= adelanto.saldoPendiente) {
       // Alcanza para cubrir este adelanto completo
-      montoAplicado += adelanto.saldoPendiente
-      montoRestante -= adelanto.saldoPendiente
-      adelanto.montoRecuperado += adelanto.saldoPendiente
       const abonoDelDia = adelanto.saldoPendiente
       montoAplicado += abonoDelDia
       montoRestante -= abonoDelDia
@@ -142,9 +138,6 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
       })
     } else {
       // Solo alcanza para un abono parcial
-      montoAplicado += montoRestante
-      adelanto.montoRecuperado += montoRestante
-      adelanto.saldoPendiente -= montoRestante
       const abonoDelDia = montoRestante
       montoAplicado += abonoDelDia
       adelanto.montoRecuperado += abonoDelDia
@@ -168,4 +161,3 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
     remanente: montoRestante // lo que queda como ganancia neta real
   }
 }
-

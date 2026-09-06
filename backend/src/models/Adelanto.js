@@ -39,9 +39,7 @@ const adelantoSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',
     required: true
-  }
   },
-
   // Historial de cada abono que se le ha hecho a este adelanto
   // Cada vez que el cierre de caja abona algo, se agrega un registro aquí
   abonos: [
@@ -58,4 +56,3 @@ const adelantoSchema = new mongoose.Schema({
 
 const Adelanto = mongoose.model('Adelanto', adelantoSchema)
 export default Adelanto
-
