@@ -87,6 +87,12 @@ const routes = [
         name: 'ahorros',
         component: () => import('@/views/AhorrosView.vue'),
         meta: { requiresAdmin: true }
+      },
+      {
+        path: 'tendencia',
+        name: 'tendencia',
+        component: () => import('@/views/TendenciaView.vue'),
+        meta: { requiresAdmin: true }
       }
     ]
   }

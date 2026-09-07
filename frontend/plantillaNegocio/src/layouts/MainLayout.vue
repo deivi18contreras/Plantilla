@@ -220,6 +220,21 @@
               </q-item-section>
               <q-item-section class="text-weight-bold">Mis Ahorros</q-item-section>
             </q-item>
+
+            <!-- TENDENCIA MENSUAL -->
+            <q-item
+              clickable
+              v-ripple
+              :active="$route.path === '/tendencia'"
+              active-class="menu-item-active"
+              class="menu-item-custom"
+              @click="navTo('/tendencia')"
+            >
+              <q-item-section avatar min-width="36px">
+                <q-icon name="trending_up" size="22px" color="teal-7" />
+              </q-item-section>
+              <q-item-section class="text-weight-bold">Tendencia Mensual</q-item-section>
+            </q-item>
           </template>
         </q-list>
       </div>

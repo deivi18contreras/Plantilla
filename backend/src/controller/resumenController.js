@@ -149,3 +149,71 @@ export const obtenerResumenMes = async (req, res) => {
         });
     }
 };
+
+// ─── GET /api/resumen/tendencia?meses=6 ───────────────────────────────────────
+// Devuelve cuánto entra (recaudos) y cuánto sale (gastos) por categoría y por
+// cuenta en cada uno de los últimos N meses. Permite ver tendencias históricas.
+export const obtenerTendenciaMensual = async (req, res) => {
+    try {
+        const meses = Math.min(parseInt(req.query.meses) || 6, 12)
+
+        const hoy = new Date()
+        const resultados = []
+
+        for (let i = meses - 1; i >= 0; i--) {
+            // Calcular el mes correspondiente (retrocediendo i meses desde hoy)
+            const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1)
+            const year = fecha.getFullYear()
+            const month = fecha.getMonth() + 1
+
+            const inicio = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0))
+            const fin = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999))
+
+            const movs = await Movimiento.find({ fecha: { $gte: inicio, $lte: fin } })
+
+            // Totales generales del mes
+            let totalVentas = 0
+            let totalGastos = 0
+            movs.forEach(m => {
+                if (m.tipo === 'recaudo') totalVentas += m.monto
+                if (m.tipo === 'gasto') totalGastos += m.monto
+            })
+
+            // Gastos por categoría
+            const categoriaMap = {}
+            movs.filter(m => m.tipo === 'gasto').forEach(m => {
+                const cat = (m.categoria || 'Sin categoría').trim()
+                categoriaMap[cat] = (categoriaMap[cat] || 0) + m.monto
+            })
+
+            // Recaudos por cuenta (lo que entró en cada cuenta)
+            const cuentas = { Efectivo: 0, Nequi: 0, Bancolombia: 0 }
+            movs.filter(m => m.tipo === 'recaudo').forEach(m => {
+                if (cuentas[m.cuenta] !== undefined) cuentas[m.cuenta] += m.monto
+            })
+
+            resultados.push({
+                mes: `${year}-${String(month).padStart(2, '0')}`,
+                label: fecha.toLocaleDateString('es-CO', { month: 'short', year: 'numeric' }),
+                totalVentas: totalVentas + totalGastos, // ventas brutas = gastos + cierres
+                totalGastos,
+                neto: totalVentas,
+                porCategoria: categoriaMap,
+                porCuenta: cuentas
+            })
+        }
+
+        // Listar todas las categorías que aparecen en algún mes (para armar la tabla)
+        const todasCategorias = [...new Set(
+            resultados.flatMap(r => Object.keys(r.porCategoria))
+        )].sort()
+
+        res.status(200).json({ meses: resultados, categorias: todasCategorias })
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: '❌ Error al obtener tendencia mensual',
+            error: error.message
+        })
+    }
+}

@@ -56,3 +56,4 @@ const adelantoSchema = new mongoose.Schema({
 
 const Adelanto = mongoose.model('Adelanto', adelantoSchema)
 export default Adelanto
+
