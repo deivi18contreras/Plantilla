@@ -26,18 +26,23 @@ export const obtenerResumenMes = async (req, res) => {
         });
 
         let totalRecaudos = 0; // Plata sobrante del Cierre (Efectivo Neto + Nequi + Bancolombia)
-        let totalGastos = 0;   // Plata pagada en compras del mes
+        let totalGastos = 0;   // Plata pagada en compras del mes (Efectivo + Bancos)
+        let totalGastosEfectivo = 0; // Solo lo pagado de la caja física
 
         movimientosMes.forEach(m => {
             if (m.tipo === 'recaudo') totalRecaudos += m.monto;
-            if (m.tipo === 'gasto') totalGastos += m.monto;
+            if (m.tipo === 'gasto') {
+                totalGastos += m.monto;
+                if (m.cuenta === 'Efectivo') totalGastosEfectivo += m.monto;
+            }
         });
 
         // En la fórmula de negocio:
-        // Venta Total Bruta del Mes = Gastos del Mes + Cierres del Mes
-        const totalVentaBrutaMes = totalGastos + totalRecaudos;
+        // Venta Total Bruta del Mes = Gastos de Caja (Efectivo) + Cierres del Mes
+        // (Los gastos de Bancolombia/Nequi no se suman a las ventas porque salieron del banco, no del cajón)
+        const totalVentaBrutaMes = totalGastosEfectivo + totalRecaudos;
 
-        // Te Queda (Ganancia Líquida Neta) = Venta Total Bruta - Gastos = totalRecaudos
+        // Te Queda (Ganancia Líquida Neta) = Venta Total Bruta - Total Gastos
         const neto = totalVentaBrutaMes - totalGastos;
 
         // Gastos por categoría con normalización de espacios y mayúsculas
@@ -172,12 +177,17 @@ export const obtenerTendenciaMensual = async (req, res) => {
             const movs = await Movimiento.find({ fecha: { $gte: inicio, $lte: fin } })
 
             // Totales generales del mes
-            let totalVentas = 0
+            let totalRecaudos = 0
             let totalGastos = 0
+            let totalGastosEfectivo = 0
             movs.forEach(m => {
-                if (m.tipo === 'recaudo') totalVentas += m.monto
-                if (m.tipo === 'gasto') totalGastos += m.monto
+                if (m.tipo === 'recaudo') totalRecaudos += m.monto
+                if (m.tipo === 'gasto') {
+                    totalGastos += m.monto
+                    if (m.cuenta === 'Efectivo') totalGastosEfectivo += m.monto
+                }
             })
+            const totalVentas = totalGastosEfectivo + totalRecaudos
 
             // Gastos por categoría
             const categoriaMap = {}
@@ -195,9 +205,9 @@ export const obtenerTendenciaMensual = async (req, res) => {
             resultados.push({
                 mes: `${year}-${String(month).padStart(2, '0')}`,
                 label: fecha.toLocaleDateString('es-CO', { month: 'short', year: 'numeric' }),
-                totalVentas: totalVentas + totalGastos, // ventas brutas = gastos + cierres
+                totalVentas,
                 totalGastos,
-                neto: totalVentas,
+                neto: totalVentas - totalGastos,
                 porCategoria: categoriaMap,
                 porCuenta: cuentas
             })

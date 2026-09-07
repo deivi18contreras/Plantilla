@@ -198,3 +198,4 @@ const cambiarMeses = (n) => {
 
 onMounted(cargarTendencia)
 </script>
+

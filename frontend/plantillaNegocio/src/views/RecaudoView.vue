@@ -158,8 +158,15 @@
             <!-- GASTOS DIARIOS -->
             <div class="q-pa-sm bg-slate-800" style="border-radius: 10px;">
               <div class="row items-center justify-between">
-                <span class="text-body2 text-weight-bold text-slate-200">🔴 GASTOS (del negocio):</span>
-                <span class="text-subtitle1 text-weight-bolder text-red-4">- {{ formatCOP(totalGastosDia - gastosExternosNum) }}</span>
+                <span class="text-body2 text-weight-bold text-slate-200">🔴 GASTOS DE CAJA (Efectivo):</span>
+                <span class="text-subtitle1 text-weight-bolder text-red-4">- {{ formatCOP(totalGastosEfectivo - gastosExternosNum) }}</span>
+              </div>
+              <div v-if="totalGastosBancos > 0" class="row items-center justify-between q-mt-xs text-caption text-slate-400">
+                <span>🏦 Pagados por Banco (Bancolombia/Nequi):</span>
+                <span class="text-weight-bold text-amber-3">- {{ formatCOP(totalGastosBancos) }}</span>
+              </div>
+              <div v-if="totalGastosBancos > 0" class="text-caption text-slate-400 q-mt-xs" style="font-size: 11px;">
+                ℹ️ Los gastos bancarios no inflan la venta de caja (salieron del banco, no del cajón). Total compras: {{ formatCOP(totalGastosDia) }}
               </div>
               <div v-if="gastosExternosNum > 0" class="text-caption text-orange-4 q-mt-xs">
                 ⚡ {{ formatCOP(gastosExternosNum) }} externos excluidos
@@ -196,13 +203,13 @@
               <span class="text-h6 text-weight-bolder text-blue-3">{{ formatCOP(totalCierreLiquid) }}</span>
             </div>
 
-            <!-- VENTA TOTAL DEL DIA (Gastos + Cierre) -->
+            <!-- VENTA TOTAL DEL DIA (Gastos Caja + Cierre) -->
             <div class="row justify-between items-center q-pt-xs border-t border-slate-700" style="border-top: 1px solid rgba(255, 255, 255, 0.15);">
               <span class="text-subtitle1 text-weight-bolder text-green-4">🟢 VENTA TOTAL DEL DÍA:</span>
               <span class="text-h5 text-weight-bolder text-green-4">{{ formatCOP(totalVentaDia) }}</span>
             </div>
             <div class="text-caption text-slate-300 text-right" style="margin-top: -6px;">
-              Gastos ({{ formatCOP(totalGastosDia) }}) + Cierre ({{ formatCOP(totalCierreLiquid) }}) = {{ formatCOP(totalVentaDia) }}
+              Gastos Caja ({{ formatCOP(totalGastosEfectivo - gastosExternosNum) }}) + Cierre ({{ formatCOP(totalCierreLiquid) }}) = {{ formatCOP(totalVentaDia) }}
             </div>
 
           </div>
@@ -259,6 +266,8 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const totalGastosDia = ref(0)
+const totalGastosEfectivo = ref(0)
+const totalGastosBancos = ref(0)
 const cierreYaExiste = ref(false)
 const modalCompartir = ref(false)
 const textoWhatsApp = ref('')
@@ -292,9 +301,9 @@ const totalCierreLiquid = computed(() => {
 // Gastos externos (préstamos, plata de meses anteriores) que NO cuentan como venta real
 const gastosExternosNum = computed(() => Math.max(0, Number(form.value.gastosExternos || 0)))
 
-// VENTA REAL = (Gastos del día - Gastos Externos) + Cierre + Devolución de préstamos (que salieron de las ventas)
+// VENTA REAL = (Gastos pagados en Efectivo de caja - Gastos Externos) + Cierre Total + Devolución de préstamos
 const totalVentaDia = computed(() => {
-  return (totalGastosDia.value - gastosExternosNum.value) + totalCierreLiquid.value + devolucionNum.value
+  return (totalGastosEfectivo.value - gastosExternosNum.value) + totalCierreLiquid.value + devolucionNum.value
 })
 
 const formatCOP = (val) =>
@@ -304,15 +313,23 @@ const cargarGastosDelDia = async () => {
   if (!form.value.fecha) return
   try {
     const movimientos = await getData('/movimientos', { fecha: form.value.fecha })
-    totalGastosDia.value = movimientos
-      .filter(m => m.tipo === 'gasto')
+    const gastos = movimientos.filter(m => m.tipo === 'gasto')
+    totalGastosDia.value = gastos.reduce((sum, m) => sum + (m.monto || 0), 0)
+    totalGastosEfectivo.value = gastos
+      .filter(m => m.cuenta === 'Efectivo')
       .reduce((sum, m) => sum + (m.monto || 0), 0)
+    totalGastosBancos.value = gastos
+      .filter(m => m.cuenta !== 'Efectivo')
+      .reduce((sum, m) => sum + (m.monto || 0), 0)
+
     // Verificar si ya hay cierre para esta fecha
     cierreYaExiste.value = movimientos.some(
       m => m.tipo === 'recaudo' && m.categoria === 'Ventas del día'
     )
   } catch (error) {
     totalGastosDia.value = 0
+    totalGastosEfectivo.value = 0
+    totalGastosBancos.value = 0
     cierreYaExiste.value = false
   }
 }
@@ -325,12 +342,14 @@ const generarTextoWhatsApp = () => {
   const fechaStr = formatFechaLarga(form.value.fecha)
   const negocio = configStore.nombreNegocio || 'Negocio'
   const por = authStore.nombreUsuario || 'Empleado'
-  const gastos = totalGastosDia.value - gastosExternosNum.value
+  const gastosCaja = totalGastosEfectivo.value - gastosExternosNum.value
+  const gastosBancos = totalGastosBancos.value
 
   return `📊 *CIERRE DE TURNO*
 ${negocio.toUpperCase()} — ${fechaStr}
 ${'─'.repeat(32)}
-🔴 Gastos del día:   ${formatCOP(gastos)}
+🔴 Gastos de caja:    ${formatCOP(gastosCaja)}${gastosBancos > 0 ? `
+🏦 Gastos por banco:  ${formatCOP(gastosBancos)} (Total compras: ${formatCOP(totalGastosDia.value)})` : ''}
 💵 Efectivo neto:    ${formatCOP(recaudoEfectivoNeto.value)}${devolucionNum.value > 0 ? `
 🔄 Devolución deuda: ${formatCOP(devolucionNum.value)}` : ''}
 📱 Nequi:            ${formatCOP(Number(form.value.recaudoNequi || 0))}
