@@ -89,7 +89,6 @@ export const registrarCierreDiario = async (req, res) => {
         // 1. Procesar Efectivo: El recaudo neto guardado en el movimiento es recaudoEfectivoNeto
         let cuentaEfectivo = await Cuenta.findOne({ nombre: 'Efectivo' }).session(session);
         if (!cuentaEfectivo) {
-            const [c] = await Cuenta.create([{ nombre: 'Efectivo', saldo: BASE_EFECTIVO }], { session });
             const [c] = await Cuenta.create([{ nombre: 'Efectivo', saldo: 0 }], { session });
             cuentaEfectivo = c;
         }
@@ -111,8 +110,6 @@ export const registrarCierreDiario = async (req, res) => {
         );
         movimientosCreados.push(mEfectivo);
 
-        // Ajustar el saldo de Efectivo en caja al dinero contado real (Base + Neto)
-        cuentaEfectivo.saldo = eContado > 0 ? eContado : (cuentaEfectivo.saldo + recaudoEfectivoNeto);
         // Sumar al saldo de Efectivo únicamente la plata real libre recaudada (sin sumar la base de $600.000)
         cuentaEfectivo.saldo += recaudoEfectivoNeto;
         await cuentaEfectivo.save({ session });
@@ -650,7 +647,7 @@ export const editarCierreDiario = async (req, res) => {
         // Efectivo
         let cuentaEfectivo = await Cuenta.findOne({ nombre: 'Efectivo' }).session(session);
         if (!cuentaEfectivo) {
-            const [c] = await Cuenta.create([{ nombre: 'Efectivo', saldo: BASE_EFECTIVO }], { session });
+            const [c] = await Cuenta.create([{ nombre: 'Efectivo', saldo: 0 }], { session });
             cuentaEfectivo = c;
         }
 
@@ -671,7 +668,7 @@ export const editarCierreDiario = async (req, res) => {
         );
         movimientosCreados.push(mEfectivo);
 
-        cuentaEfectivo.saldo = eContado > 0 ? eContado : (cuentaEfectivo.saldo + recaudoEfectivoNeto);
+        cuentaEfectivo.saldo += recaudoEfectivoNeto;
         await cuentaEfectivo.save({ session });
 
         // Nequi
