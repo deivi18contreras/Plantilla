@@ -146,10 +146,10 @@
       <div class="col-12 col-md-4">
         <div class="card-widget full-height">
           <div class="text-subtitle1 text-weight-bold text-slate-900 q-mb-sm">Cuentas</div>
-          <CardCuenta nombre="Efectivo" :monto="cuentasStore.saldoPor('Efectivo')" icon="payments" avatar-color="green-1" avatar-text-color="green-8" clickable @click="$router.push('/recaudo')" />
-          <CardCuenta nombre="Nequi" :monto="cuentasStore.saldoPor('Nequi')" icon="phone_android" avatar-color="purple-1" avatar-text-color="purple-8" clickable @click="$router.push('/recaudo')" />
-          <CardCuenta nombre="Bancolombia" :monto="cuentasStore.saldoPor('Bancolombia')" icon="account_balance" avatar-color="amber-1" avatar-text-color="amber-9" clickable @click="$router.push('/recaudo')" />
-          <CardCuenta nombre="Total" :monto="cuentasStore.totalSaldo" icon="account_balance_wallet" avatar-color="blue-1" avatar-text-color="blue-8" />
+          <CardCuenta nombre="Efectivo" :monto="cuentasStore.saldoPor('Efectivo')" icon="payments" avatar-color="green-1" avatar-text-color="green-8" clickable @click="abrirExtracto('Efectivo')" />
+          <CardCuenta nombre="Nequi" :monto="cuentasStore.saldoPor('Nequi')" icon="phone_android" avatar-color="purple-1" avatar-text-color="purple-8" clickable @click="abrirExtracto('Nequi')" />
+          <CardCuenta nombre="Bancolombia" :monto="cuentasStore.saldoPor('Bancolombia')" icon="account_balance" avatar-color="amber-1" avatar-text-color="amber-9" clickable @click="abrirExtracto('Bancolombia')" />
+          <CardCuenta nombre="Total" :monto="cuentasStore.totalSaldo" icon="account_balance_wallet" avatar-color="blue-1" avatar-text-color="blue-8" clickable @click="abrirExtracto('Total')" />
         </div>
       </div>
 
@@ -315,6 +315,12 @@
       </div>
     </div>
 
+    <!-- MODAL EXTRACTO RÁPIDO DE CUENTA -->
+    <ModalExtractoCuenta
+      v-model="modalExtractoAbierto"
+      :cuenta-nombre="cuentaSeleccionada"
+    />
+
   </div>
 </template>
 
@@ -330,6 +336,7 @@ import { getData } from '@/services/apiService'
 import { useRouter } from 'vue-router'
 import { parseFechaLocal } from '@/utils/dateUtils'
 import CardCuenta from '@/components/CardCuenta.vue'
+import ModalExtractoCuenta from '@/components/ModalExtractoCuenta.vue'
 
 const authStore = useAuthStore()
 const cuentasStore = useCuentasStore()
@@ -339,6 +346,13 @@ const adelantosStore = useAdelantosStore()
 const gastosFijosStore = useGastosFijosStore()
 const router = useRouter()
 const cargandoGrafica = ref(false)
+
+const modalExtractoAbierto = ref(false)
+const cuentaSeleccionada = ref('Nequi')
+const abrirExtracto = (cuenta) => {
+  cuentaSeleccionada.value = cuenta
+  modalExtractoAbierto.value = true
+}
 
 const fechaHoy = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
 const hoyISO = () => {

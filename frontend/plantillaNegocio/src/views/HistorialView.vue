@@ -54,6 +54,78 @@
 
       <!-- 🟢 VISTA 1: MOVIMIENTOS INDIVIDUALES -->
       <template v-if="pestanaActiva === 'movimientos'">
+
+        <!-- FILTROS POR CUENTA TIPO PÍLDORA -->
+        <div class="row items-center q-gutter-xs q-mb-md">
+          <span class="text-caption text-weight-bold text-slate-500 q-mr-xs">Cuenta:</span>
+          <q-btn
+            no-caps
+            rounded
+            dense
+            size="sm"
+            class="q-px-sm text-weight-bold"
+            :color="filtroCuenta === 'Todas' ? 'primary' : 'grey-3'"
+            :text-color="filtroCuenta === 'Todas' ? 'white' : 'slate-700'"
+            label="Todas"
+            @click="filtroCuenta = 'Todas'; paginaActual = 1"
+          />
+          <q-btn
+            no-caps
+            rounded
+            dense
+            size="sm"
+            class="q-px-sm text-weight-bold"
+            :color="filtroCuenta === 'Efectivo' ? 'positive' : 'grey-3'"
+            :text-color="filtroCuenta === 'Efectivo' ? 'white' : 'slate-700'"
+            label="💵 Efectivo"
+            @click="filtroCuenta = 'Efectivo'; paginaActual = 1"
+          />
+          <q-btn
+            no-caps
+            rounded
+            dense
+            size="sm"
+            class="q-px-sm text-weight-bold"
+            :color="filtroCuenta === 'Nequi' ? 'purple-7' : 'grey-3'"
+            :text-color="filtroCuenta === 'Nequi' ? 'white' : 'slate-700'"
+            label="📱 Nequi"
+            @click="filtroCuenta = 'Nequi'; paginaActual = 1"
+          />
+          <q-btn
+            no-caps
+            rounded
+            dense
+            size="sm"
+            class="q-px-sm text-weight-bold"
+            :color="filtroCuenta === 'Bancolombia' ? 'amber-9' : 'grey-3'"
+            :text-color="filtroCuenta === 'Bancolombia' ? 'white' : 'slate-700'"
+            label="🏦 Bancolombia"
+            @click="filtroCuenta = 'Bancolombia'; paginaActual = 1"
+          />
+        </div>
+
+        <!-- RESUMEN DE LA CUENTA SELECCIONADA -->
+        <div v-if="filtroCuenta !== 'Todas'" class="row q-col-gutter-sm q-mb-md">
+          <div class="col-6 col-sm-4">
+            <div class="bg-green-1 text-positive q-pa-sm rounded-borders text-center">
+              <div class="text-caption font-medium">Entradas en {{ filtroCuenta }}</div>
+              <div class="text-weight-bolder text-subtitle2">+ {{ formatCOP(resumenCuentaSeleccionada.entradas) }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-4">
+            <div class="bg-red-1 text-negative q-pa-sm rounded-borders text-center">
+              <div class="text-caption font-medium">Salidas en {{ filtroCuenta }}</div>
+              <div class="text-weight-bolder text-subtitle2">- {{ formatCOP(resumenCuentaSeleccionada.salidas) }}</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <div class="bg-blue-1 text-primary q-pa-sm rounded-borders text-center">
+              <div class="text-caption font-medium">Saldo Actual {{ filtroCuenta }}</div>
+              <div class="text-weight-bolder text-subtitle2">{{ formatCOP(cuentasStore.saldoPor(filtroCuenta)) }}</div>
+            </div>
+          </div>
+        </div>
+
         <q-list separator>
           <q-item v-if="movimientosStore.loading" class="justify-center q-py-lg">
             <q-spinner color="primary" size="28px" />
@@ -205,6 +277,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useMovimientosStore } from '@/store/movimientosStore'
 import { useCuentasStore } from '@/store/cuentasStore'
 import { useAuthStore } from '@/store/authStore'
@@ -219,6 +292,7 @@ import ModalEditarCierre from '@/components/ModalEditarCierre.vue'
 import { parseFechaLocal, formatFechaLarga, formatFechaCorta, getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
+const route = useRoute()
 const movimientosStore = useMovimientosStore()
 const cuentasStore = useCuentasStore()
 const authStore = useAuthStore()
@@ -232,22 +306,43 @@ const modalEditarCierre = ref(false)
 const cierreSeleccionadoParaEditar = ref(null)
 
 const filtroFecha = ref(getFechaLocalHoy())
+const filtroCuenta = ref(route.query.cuenta ? String(route.query.cuenta) : 'Todas')
 const pestanaActiva = ref('movimientos')
 const modalEdicion = ref(false)
 const cargandoAccion = ref(false)
 const cuentas = ['Efectivo', 'Nequi', 'Bancolombia']
 
-// Paginación
+// Paginación y Filtrado por Cuenta
 const paginaActual = ref(1)
 const POR_PAGINA = 20
 
+const movimientosFiltrados = computed(() => {
+  let list = movimientosStore.movimientos || []
+  if (filtroCuenta.value && filtroCuenta.value !== 'Todas') {
+    list = list.filter(m => m.cuenta === filtroCuenta.value || m.cuentaDestino === filtroCuenta.value)
+  }
+  return list
+})
+
+const resumenCuentaSeleccionada = computed(() => {
+  if (filtroCuenta.value === 'Todas') return { entradas: 0, salidas: 0 }
+  const c = filtroCuenta.value
+  const entradas = movimientosFiltrados.value
+    .filter(m => m.tipo === 'recaudo' || (m.tipo === 'transferencia' && m.cuentaDestino === c))
+    .reduce((s, m) => s + (m.monto || 0), 0)
+  const salidas = movimientosFiltrados.value
+    .filter(m => m.tipo === 'gasto' || (m.tipo === 'transferencia' && m.cuenta === c))
+    .reduce((s, m) => s + (m.monto || 0), 0)
+  return { entradas, salidas }
+})
+
 const totalPaginas = computed(() =>
-  Math.ceil(movimientosStore.movimientos.length / POR_PAGINA)
+  Math.ceil(movimientosFiltrados.value.length / POR_PAGINA)
 )
 
 const movimientosPaginados = computed(() => {
   const inicio = (paginaActual.value - 1) * POR_PAGINA
-  return movimientosStore.movimientos.slice(inicio, inicio + POR_PAGINA)
+  return movimientosFiltrados.value.slice(inicio, inicio + POR_PAGINA)
 })
 
 const formatCOP = (val) =>
@@ -477,6 +572,13 @@ const exportarHistorialExcel = () => {
 
 onMounted(async () => {
   await configStore.fetchConfiguracion()
-  buscarPorFecha()
+  await cuentasStore.fetchCuentas()
+  if (route.query.cuenta) {
+    filtroCuenta.value = String(route.query.cuenta)
+    filtroFecha.value = ''
+    movimientosStore.fetchMovimientos()
+  } else {
+    buscarPorFecha()
+  }
 })
 </script>

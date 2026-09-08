@@ -352,7 +352,7 @@ export const registrarTransferencia = async (req, res) => {
 // ─── GET /api/movimientos ─────────────────────────────────────────────────────
 export const listarMovimientos = async (req, res) => {
     try {
-        const { fecha, desde, hasta, page = 1, limit = 200 } = req.query;
+        const { fecha, desde, hasta, cuenta, page = 1, limit = 200 } = req.query;
         let filtro = {};
 
         if (fecha) {
@@ -368,6 +368,10 @@ export const listarMovimientos = async (req, res) => {
                 finHasta.setHours(23, 59, 59, 999);
                 filtro.fecha.$lte = finHasta;
             }
+        }
+
+        if (cuenta) {
+            filtro.$or = [{ cuenta }, { cuentaDestino: cuenta }];
         }
 
         const skip = (Number(page) - 1) * Number(limit);

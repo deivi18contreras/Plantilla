@@ -42,6 +42,12 @@ const routes = [
         meta: { requiresAdmin: true }
       },
       {
+        path: 'cuentas',
+        name: 'cuentas',
+        component: () => import('@/views/CuentasDetalleView.vue'),
+        meta: { requiresAdmin: true }
+      },
+      {
         path: 'historial',
         name: 'historial',
         component: () => import('@/views/HistorialView.vue')

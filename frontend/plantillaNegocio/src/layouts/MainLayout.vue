@@ -101,6 +101,21 @@
               Administración
             </div>
 
+            <!-- CUENTAS Y BANCOS -->
+            <q-item
+              clickable
+              v-ripple
+              :active="$route.path === '/cuentas'"
+              active-class="menu-item-active"
+              class="menu-item-custom"
+              @click="navTo('/cuentas')"
+            >
+              <q-item-section avatar min-width="36px">
+                <q-icon name="account_balance" size="22px" color="blue-8" />
+              </q-item-section>
+              <q-item-section class="text-weight-bold">Cuentas y Bancos</q-item-section>
+            </q-item>
+
             <!-- TRANSFERIR -->
             <q-item
               clickable
