@@ -1,15 +1,16 @@
 import mongoose from 'mongoose'
 import Adelanto from '../models/Adelanto.js'
+import Cuenta from '../models/Cuentas.js'
 
 // ─── POST /api/adelantos ───────────────────────────────────────────────────────
-// Registra un nuevo adelanto interno. NO modifica el saldo de Efectivo en Cuentas
-// (es solo un registro informativo de deuda interna).
+// Registra un nuevo adelanto interno. Si se especifica cuentaOrigen (Efectivo, Nequi,
+// Bancolombia), descuenta el dinero de esa cuenta inmediatamente.
 export const registrarAdelanto = async (req, res) => {
   const session = await mongoose.startSession()
   session.startTransaction()
 
   try {
-    const { fecha, monto, motivo } = req.body
+    const { fecha, monto, motivo, cuentaOrigen = 'Efectivo' } = req.body
 
     if (!fecha || !monto) {
       await session.abortTransaction()
@@ -23,6 +24,15 @@ export const registrarAdelanto = async (req, res) => {
       return res.status(400).json({ mensaje: '❌ El monto debe ser mayor a 0' })
     }
 
+    // Si la plata salió de una cuenta del negocio, descontarla del saldo de la cuenta
+    if (cuentaOrigen && cuentaOrigen !== 'Externo') {
+      let cuentaDoc = await Cuenta.findOne({ nombre: cuentaOrigen }).session(session)
+      if (cuentaDoc) {
+        cuentaDoc.saldo -= Number(monto)
+        await cuentaDoc.save({ session })
+      }
+    }
+
     const [adelanto] = await Adelanto.create(
       [{
         fecha,
@@ -31,6 +41,7 @@ export const registrarAdelanto = async (req, res) => {
         montoRecuperado: 0,
         saldoPendiente: Number(monto),
         estado: 'pendiente',
+        cuentaOrigen,
         creadoPor: req.user.id
       }],
       { session }
@@ -96,15 +107,6 @@ export const listarTodosAdelantos = async (req, res) => {
 // ─── FUNCIÓN INTERNA (no es endpoint) ─────────────────────────────────────────
 // Se llama desde registrarCierreDiario para abonar el recaudo neto a los adelantos
 // pendientes usando FIFO (más antiguo primero).
-//
-// Recibe:
-//   - montoDisponible: el recaudo neto de efectivo del día
-//   - session: la sesión de Mongoose activa
-//   - fechaCierre: la fecha del cierre (para registrar en el historial del abono)
-//
-// Devuelve:
-//   - montoAplicado: cuánto se destinó a pagar adelantos
-//   - remanente: cuánto queda como ganancia real del día
 export const abonarAdelantos = async (montoDisponible, session, fechaCierre = new Date()) => {
   // Traer adelantos pendientes, del más antiguo al más reciente (FIFO)
   const pendientes = await Adelanto.find({ estado: 'pendiente' })
@@ -115,7 +117,6 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
   let montoAplicado = 0
 
   for (const adelanto of pendientes) {
-    // Si ya no queda plata para abonar, parar
     if (montoRestante <= 0) break
 
     const saldoAntes = adelanto.saldoPendiente
@@ -129,12 +130,12 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
       adelanto.saldoPendiente = 0
       adelanto.estado = 'recuperado'
 
-      // Registrar el abono en el historial del adelanto
       adelanto.abonos.push({
         fecha: fechaCierre,
         monto: abonoDelDia,
         saldoAntes,
-        saldoDespues: 0
+        saldoDespues: 0,
+        cuentaDestino: 'Efectivo'
       })
     } else {
       // Solo alcanza para un abono parcial
@@ -144,12 +145,12 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
       adelanto.saldoPendiente -= abonoDelDia
       montoRestante = 0
 
-      // Registrar el abono parcial en el historial del adelanto
       adelanto.abonos.push({
         fecha: fechaCierre,
         monto: abonoDelDia,
         saldoAntes,
-        saldoDespues: adelanto.saldoPendiente
+        saldoDespues: adelanto.saldoPendiente,
+        cuentaDestino: 'Efectivo'
       })
     }
 
@@ -164,13 +165,14 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
 
 // ─── POST /api/adelantos/:id/abono ───────────────────────────────────────────
 // Permite registrar un abono o pago manual directamente a un adelanto pendiente.
+// Suma la plata recuperada a la cuenta de destino seleccionada.
 export const abonarManualAdelanto = async (req, res) => {
   const session = await mongoose.startSession()
   session.startTransaction()
 
   try {
     const { id } = req.params
-    const { monto } = req.body
+    const { monto, cuentaDestino } = req.body
 
     const montoNum = Number(monto)
     if (!montoNum || montoNum <= 0) {
@@ -201,11 +203,22 @@ export const abonarManualAdelanto = async (req, res) => {
       adelanto.estado = 'recuperado'
     }
 
+    // Si la plata devuelta entra a una cuenta del negocio, sumarla al saldo de esa cuenta
+    const destinoFinal = cuentaDestino || adelanto.cuentaOrigen || 'Efectivo'
+    if (destinoFinal && destinoFinal !== 'Externo') {
+      let cuentaDoc = await Cuenta.findOne({ nombre: destinoFinal }).session(session)
+      if (cuentaDoc) {
+        cuentaDoc.saldo += abonoReal
+        await cuentaDoc.save({ session })
+      }
+    }
+
     adelanto.abonos.push({
       fecha: new Date(),
       monto: abonoReal,
       saldoAntes,
-      saldoDespues: adelanto.saldoPendiente
+      saldoDespues: adelanto.saldoPendiente,
+      cuentaDestino: destinoFinal
     })
 
     await adelanto.save({ session })

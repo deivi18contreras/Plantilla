@@ -34,6 +34,12 @@ const adelantoSchema = new mongoose.Schema({
     enum: ['pendiente', 'recuperado'],
     default: 'pendiente'
   },
+  // De qué cuenta salió el dinero ('Efectivo', 'Nequi', 'Bancolombia', 'Externo')
+  cuentaOrigen: {
+    type: String,
+    enum: ['Efectivo', 'Nequi', 'Bancolombia', 'Externo', ''],
+    default: 'Efectivo'
+  },
   // Quién lo registró
   creadoPor: {
     type: mongoose.Schema.Types.ObjectId,
@@ -41,13 +47,13 @@ const adelantoSchema = new mongoose.Schema({
     required: true
   },
   // Historial de cada abono que se le ha hecho a este adelanto
-  // Cada vez que el cierre de caja abona algo, se agrega un registro aquí
   abonos: [
     {
-      fecha: { type: Date, required: true },          // fecha del cierre que hizo el abono
-      monto: { type: Number, required: true },         // cuánto se abonó ese día
+      fecha: { type: Date, required: true },          // fecha del abono
+      monto: { type: Number, required: true },         // cuánto se abonó
       saldoAntes: { type: Number, required: true },    // saldo pendiente antes del abono
-      saldoDespues: { type: Number, required: true }   // saldo pendiente después del abono
+      saldoDespues: { type: Number, required: true },   // saldo pendiente después del abono
+      cuentaDestino: { type: String, default: 'Efectivo' } // cuenta a la que entró el dinero devuelto
     }
   ]
 }, {

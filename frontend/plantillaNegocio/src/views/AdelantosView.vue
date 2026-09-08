@@ -80,6 +80,7 @@
               <div class="text-weight-bold text-slate-900">{{ a.motivo || 'Sin motivo especificado' }}</div>
               <div class="text-caption text-slate-500 q-mb-xs">
                 Fecha: {{ formatFecha(a.fecha) }}
+                · Salió de: <span class="text-weight-bold text-primary">{{ a.cuentaOrigen || 'Efectivo' }}</span>
                 · Recuperado: {{ formatCOP(a.montoRecuperado) }}
               </div>
               <!-- Historial de abonos -->
@@ -176,6 +177,22 @@
             <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">Motivo</div>
             <q-input v-model="form.motivo" placeholder="Ej. Pedido proveedor de carne" borderless class="clean-input" />
           </div>
+          <div>
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">¿De qué cuenta salió el dinero?</div>
+            <q-select
+              v-model="form.cuentaOrigen"
+              :options="[
+                { label: '💵 Efectivo (descuenta de caja)', value: 'Efectivo' },
+                { label: '🏦 Bancolombia (descuenta de banco)', value: 'Bancolombia' },
+                { label: '📱 Nequi (descuenta de Nequi)', value: 'Nequi' },
+                { label: '⚪ Externo (sin tocar cuentas)', value: 'Externo' }
+              ]"
+              emit-value
+              map-options
+              borderless
+              class="clean-input"
+            />
+          </div>
         </q-card-section>
 
         <q-card-actions class="justify-end q-pt-md">
@@ -204,7 +221,7 @@
           <div class="q-pa-sm bg-slate-100 rounded q-mb-md" style="border-radius: 10px;">
             <div class="text-weight-bold text-slate-800">{{ adelantoSeleccionado.motivo || 'Sin motivo' }}</div>
             <div class="text-caption text-slate-500">
-              Fecha: {{ formatFecha(adelantoSeleccionado.fecha) }} · Total: {{ formatCOP(adelantoSeleccionado.monto) }}
+              Fecha: {{ formatFecha(adelantoSeleccionado.fecha) }} · Salió de: {{ adelantoSeleccionado.cuentaOrigen || 'Efectivo' }}
             </div>
             <div class="text-subtitle2 text-weight-bolder text-red-6 q-mt-xs">
               Saldo Pendiente: {{ formatCOP(adelantoSeleccionado.saldoPendiente) }}
@@ -237,6 +254,23 @@
             />
           </div>
 
+          <div class="q-mb-md">
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">¿A qué cuenta entra la plata devuelta?</div>
+            <q-select
+              v-model="cuentaDestinoAbono"
+              :options="[
+                { label: '💵 Efectivo (suma a caja)', value: 'Efectivo' },
+                { label: '🏦 Bancolombia (suma a banco)', value: 'Bancolombia' },
+                { label: '📱 Nequi (suma a Nequi)', value: 'Nequi' },
+                { label: '⚪ Externo (sin tocar cuentas)', value: 'Externo' }
+              ]"
+              emit-value
+              map-options
+              borderless
+              class="clean-input"
+            />
+          </div>
+
           <q-btn
             no-caps
             label="Confirmar Abono / Pago"
@@ -255,28 +289,32 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAdelantosStore } from '@/store/adelantosStore'
+import { useCuentasStore } from '@/store/cuentasStore'
 import { useAuthStore } from '@/store/authStore'
 import { useQuasar } from 'quasar'
 import { getFechaLocalHoy, parseFechaLocal } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const adelantosStore = useAdelantosStore()
+const cuentasStore = useCuentasStore()
 const authStore = useAuthStore()
 
 const tab = ref('pendientes')
 const modalNuevo = ref(false)
 const guardando = ref(false)
-const form = ref({ fecha: getFechaLocalHoy(), monto: '', motivo: '' })
+const form = ref({ fecha: getFechaLocalHoy(), monto: '', motivo: '', cuentaOrigen: 'Efectivo' })
 
 // Estado para abonar / pagar manualmente
 const modalAbono = ref(false)
 const adelantoSeleccionado = ref(null)
 const montoAbono = ref('')
+const cuentaDestinoAbono = ref('Efectivo')
 const guardandoAbono = ref(false)
 
 const abrirModalAbono = (adelanto) => {
   adelantoSeleccionado.value = adelanto
   montoAbono.value = adelanto.saldoPendiente
+  cuentaDestinoAbono.value = adelanto.cuentaOrigen && adelanto.cuentaOrigen !== 'Externo' ? adelanto.cuentaOrigen : 'Efectivo'
   modalAbono.value = true
 }
 
@@ -287,10 +325,15 @@ const confirmarAbono = async () => {
   }
   guardandoAbono.value = true
   try {
-    const res = await adelantosStore.abonarManual(adelantoSeleccionado.value._id, Number(montoAbono.value))
+    const res = await adelantosStore.abonarManual(
+      adelantoSeleccionado.value._id,
+      Number(montoAbono.value),
+      cuentaDestinoAbono.value
+    )
     $q.notify({ type: 'positive', message: res.mensaje || '✅ Pago registrado' })
     modalAbono.value = false
     adelantoSeleccionado.value = null
+    await cuentasStore.fetchCuentas()
   } catch (error) {
     $q.notify({ type: 'negative', message: error.response?.data?.mensaje || '❌ Error al registrar abono' })
   } finally {
@@ -330,11 +373,13 @@ const guardarAdelanto = async () => {
     await adelantosStore.registrarAdelanto({
       fecha: form.value.fecha,
       monto: Number(form.value.monto),
-      motivo: form.value.motivo
+      motivo: form.value.motivo,
+      cuentaOrigen: form.value.cuentaOrigen
     })
     $q.notify({ type: 'positive', message: '✅ Adelanto registrado correctamente' })
     modalNuevo.value = false
-    form.value = { fecha: getFechaLocalHoy(), monto: '', motivo: '' }
+    form.value = { fecha: getFechaLocalHoy(), monto: '', motivo: '', cuentaOrigen: 'Efectivo' }
+    await cuentasStore.fetchCuentas()
   } catch (error) {
     $q.notify({ type: 'negative', message: error.response?.data?.mensaje || '❌ Error al guardar' })
   } finally {
@@ -342,6 +387,9 @@ const guardarAdelanto = async () => {
   }
 }
 
-onMounted(() => adelantosStore.fetchPendientes())
+onMounted(() => {
+  adelantosStore.fetchPendientes()
+  cuentasStore.fetchCuentas()
+})
 </script>
 
