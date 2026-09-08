@@ -26,9 +26,6 @@ export const registrarGasto = async (req, res) => {
         }
 
         let advertencia = null;
-        if (cuentaDoc.saldo < monto) {
-            advertencia = `⚠️ El saldo de ${cuenta} quedó negativo temporalmente. Se regularización al registrar el Cierre Diario de hoy.`;
-        }
 
         // Crear el movimiento de gasto
         const [movimiento] = await Movimiento.create(
@@ -36,9 +33,14 @@ export const registrarGasto = async (req, res) => {
             { session }
         );
 
-        // Descontar del saldo
-        cuentaDoc.saldo -= Number(monto);
-        await cuentaDoc.save({ session });
+        // Descontar del saldo solo si NO es Efectivo (los gastos en Efectivo se pagan con el producido diario en caja antes del cierre)
+        if (cuenta !== 'Efectivo') {
+            if (cuentaDoc.saldo < monto) {
+                advertencia = `⚠️ El saldo de ${cuenta} quedó negativo temporalmente.`;
+            }
+            cuentaDoc.saldo -= Number(monto);
+            await cuentaDoc.save({ session });
+        }
 
         await session.commitTransaction();
         session.endSession();
@@ -405,11 +407,14 @@ export const editarMovimiento = async (req, res) => {
         const cuentaVieja = await Cuenta.findOne({ nombre: movimientoViejo.cuenta }).session(session);
         if (cuentaVieja) {
             if (movimientoViejo.tipo === 'gasto') {
-                cuentaVieja.saldo += movimientoViejo.monto;
+                if (movimientoViejo.cuenta !== 'Efectivo') {
+                    cuentaVieja.saldo += movimientoViejo.monto;
+                    await cuentaVieja.save({ session });
+                }
             } else if (movimientoViejo.tipo === 'recaudo') {
                 cuentaVieja.saldo -= movimientoViejo.monto;
+                await cuentaVieja.save({ session });
             }
-            await cuentaVieja.save({ session });
         }
 
         const nuevaCuentaNombre = cuenta || movimientoViejo.cuenta;
@@ -422,11 +427,14 @@ export const editarMovimiento = async (req, res) => {
         }
 
         if (movimientoViejo.tipo === 'gasto') {
-            cuentaNueva.saldo -= nuevoMonto;
+            if (nuevaCuentaNombre !== 'Efectivo') {
+                cuentaNueva.saldo -= nuevoMonto;
+                await cuentaNueva.save({ session });
+            }
         } else if (movimientoViejo.tipo === 'recaudo') {
             cuentaNueva.saldo += nuevoMonto;
+            await cuentaNueva.save({ session });
         }
-        await cuentaNueva.save({ session });
 
         if (fecha) movimientoViejo.fecha = fecha;
         if (descripcion !== undefined) movimientoViejo.descripcion = descripcion;
@@ -471,11 +479,14 @@ export const eliminarMovimiento = async (req, res) => {
         const cuentaDoc = await Cuenta.findOne({ nombre: movimiento.cuenta }).session(session);
         if (cuentaDoc) {
             if (movimiento.tipo === 'gasto') {
-                cuentaDoc.saldo += movimiento.monto;
+                if (movimiento.cuenta !== 'Efectivo') {
+                    cuentaDoc.saldo += movimiento.monto;
+                    await cuentaDoc.save({ session });
+                }
             } else if (movimiento.tipo === 'recaudo') {
                 cuentaDoc.saldo -= movimiento.monto;
+                await cuentaDoc.save({ session });
             }
-            await cuentaDoc.save({ session });
         }
 
         await Movimiento.findByIdAndDelete(id).session(session);
@@ -544,12 +555,13 @@ export const importarGastos = async (req, res) => {
             montosPorCuenta[g.cuenta] = (montosPorCuenta[g.cuenta] || 0) + monto;
         }
 
-        // Actualizar saldos de cuentas
+        // Actualizar saldos de cuentas (los gastos en Efectivo se pagan con el producido diario en caja, no descuentan la cuenta de Efectivo)
         for (const [nombreCuenta, totalDescontar] of Object.entries(montosPorCuenta)) {
+            if (nombreCuenta === 'Efectivo') continue;
             let cuentaDoc = await Cuenta.findOne({ nombre: nombreCuenta }).session(session);
             if (!cuentaDoc) {
                 const [nueva] = await Cuenta.create(
-                    [{ nombre: nombreCuenta, saldo: nombreCuenta === 'Efectivo' ? 600000 : 0 }],
+                    [{ nombre: nombreCuenta, saldo: 0 }],
                     { session }
                 );
                 cuentaDoc = nueva;
