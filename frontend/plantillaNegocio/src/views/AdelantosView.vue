@@ -103,7 +103,19 @@
             <q-item-section side>
               <div class="text-right">
                 <div class="text-caption text-slate-500">Total: {{ formatCOP(a.monto) }}</div>
-                <div class="text-weight-bolder text-red-6">Pendiente: {{ formatCOP(a.saldoPendiente) }}</div>
+                <div class="text-weight-bolder text-red-6 q-mb-xs">Pendiente: {{ formatCOP(a.saldoPendiente) }}</div>
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  color="positive"
+                  icon="payments"
+                  label="Abonar / Pagar"
+                  class="text-weight-bold q-px-sm"
+                  style="background: #dcfce7; border-radius: 6px;"
+                  @click="abrirModalAbono(a)"
+                />
               </div>
             </q-item-section>
           </q-item>
@@ -179,6 +191,64 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- MODAL ABONAR / PAGAR ADELANTO -->
+    <q-dialog v-model="modalAbono">
+      <q-card style="width: 100%; max-width: 440px; border-radius: 20px;" class="q-pa-md">
+        <q-card-section class="row items-center justify-between q-pb-none">
+          <div class="text-subtitle1 text-weight-bolder text-slate-900">💵 Abonar / Pagar Adelanto</div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm" v-if="adelantoSeleccionado">
+          <div class="q-pa-sm bg-slate-100 rounded q-mb-md" style="border-radius: 10px;">
+            <div class="text-weight-bold text-slate-800">{{ adelantoSeleccionado.motivo || 'Sin motivo' }}</div>
+            <div class="text-caption text-slate-500">
+              Fecha: {{ formatFecha(adelantoSeleccionado.fecha) }} · Total: {{ formatCOP(adelantoSeleccionado.monto) }}
+            </div>
+            <div class="text-subtitle2 text-weight-bolder text-red-6 q-mt-xs">
+              Saldo Pendiente: {{ formatCOP(adelantoSeleccionado.saldoPendiente) }}
+            </div>
+          </div>
+
+          <div class="q-mb-md">
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">¿Cuánto vas a abonar o pagar?</div>
+            <q-input
+              v-model.number="montoAbono"
+              type="number"
+              placeholder="$ 0"
+              prefix="$"
+              borderless
+              class="clean-input"
+              autofocus
+            />
+          </div>
+
+          <div class="row q-gutter-xs q-mb-md">
+            <q-btn
+              flat
+              dense
+              no-caps
+              size="sm"
+              color="primary"
+              label="Pagar todo el saldo"
+              style="background: #eff6ff; border-radius: 6px;"
+              @click="montoAbono = adelantoSeleccionado.saldoPendiente"
+            />
+          </div>
+
+          <q-btn
+            no-caps
+            label="Confirmar Abono / Pago"
+            color="positive"
+            class="full-width text-weight-bold"
+            style="border-radius: 12px; height: 44px;"
+            :loading="guardandoAbono"
+            @click="confirmarAbono"
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -197,6 +267,37 @@ const tab = ref('pendientes')
 const modalNuevo = ref(false)
 const guardando = ref(false)
 const form = ref({ fecha: getFechaLocalHoy(), monto: '', motivo: '' })
+
+// Estado para abonar / pagar manualmente
+const modalAbono = ref(false)
+const adelantoSeleccionado = ref(null)
+const montoAbono = ref('')
+const guardandoAbono = ref(false)
+
+const abrirModalAbono = (adelanto) => {
+  adelantoSeleccionado.value = adelanto
+  montoAbono.value = adelanto.saldoPendiente
+  modalAbono.value = true
+}
+
+const confirmarAbono = async () => {
+  if (!montoAbono.value || Number(montoAbono.value) <= 0) {
+    $q.notify({ type: 'warning', message: '⚠️ Ingresa un monto válido mayor a 0' })
+    return
+  }
+  guardandoAbono.value = true
+  try {
+    const res = await adelantosStore.abonarManual(adelantoSeleccionado.value._id, Number(montoAbono.value))
+    $q.notify({ type: 'positive', message: res.mensaje || '✅ Pago registrado' })
+    modalAbono.value = false
+    adelantoSeleccionado.value = null
+  } catch (error) {
+    $q.notify({ type: 'negative', message: error.response?.data?.mensaje || '❌ Error al registrar abono' })
+  } finally {
+    guardandoAbono.value = false
+  }
+}
+
 // IDs de adelantos con el historial de abonos desplegado
 const abonosAbiertos = ref([])
 

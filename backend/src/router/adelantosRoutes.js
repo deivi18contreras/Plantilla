@@ -2,7 +2,8 @@ import { Router } from 'express'
 import {
   registrarAdelanto,
   listarAdelantosPendientes,
-  listarTodosAdelantos
+  listarTodosAdelantos,
+  abonarManualAdelanto
 } from '../controller/adelantosController.js'
 import { verificarToken, soloAdmin } from '../middlewares/authMiddleware.js'
 
@@ -16,6 +17,9 @@ router.get('/pendientes', verificarToken, listarAdelantosPendientes)
 
 // Registrar un nuevo adelanto (solo admin)
 router.post('/', verificarToken, soloAdmin, registrarAdelanto)
+
+// Abonar o pagar manualmente un adelanto (solo admin)
+router.post('/:id/abono', verificarToken, soloAdmin, abonarManualAdelanto)
 
 export default router
 

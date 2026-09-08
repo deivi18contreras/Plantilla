@@ -42,6 +42,13 @@ export const useAdelantosStore = defineStore('adelantos', {
       // Refrescar la lista después de registrar
       await this.fetchPendientes()
       return data
+    },
+
+    // Abonar o pagar un adelanto manualmente
+    async abonarManual(id, monto) {
+      const data = await postData(`/adelantos/${id}/abono`, { monto })
+      await this.fetchPendientes()
+      return data
     }
   }
 })

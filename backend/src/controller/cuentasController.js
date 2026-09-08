@@ -13,6 +13,7 @@ export const postRegistrarCuenta = async (req, res) => {
             })
         }
         const cuentasCreadas = await Cuenta.insertMany([
+            { nombre: 'Efectivo', saldo: 600000 },
             { nombre: 'Efectivo', saldo: 0 },
             { nombre: 'Nequi', saldo: 0 },
             { nombre: 'Bancolombia', saldo: 0 }
@@ -35,10 +36,18 @@ export const listarCuentas = async (req, res) => {
         let cuentas = await Cuenta.find();
         if (cuentas.length === 0) {
             cuentas = await Cuenta.insertMany([
+                { nombre: 'Efectivo', saldo: 600000 },
                 { nombre: 'Efectivo', saldo: 0 },
                 { nombre: 'Nequi', saldo: 0 },
                 { nombre: 'Bancolombia', saldo: 0 }
             ]);
+        } else {
+            // Asegurar que Efectivo tenga la base inicial de $600.000 si está en 0
+            const efectivo = cuentas.find(c => c.nombre === 'Efectivo');
+            if (efectivo && efectivo.saldo === 0) {
+                efectivo.saldo = 600000;
+                await efectivo.save();
+            }
         }
         res.status(200).json(cuentas);
     } catch (error) {

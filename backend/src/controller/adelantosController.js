@@ -101,10 +101,12 @@ export const listarTodosAdelantos = async (req, res) => {
 //   - montoDisponible: el recaudo neto de efectivo del día
 //   - session: la sesión de Mongoose activa
 //   - fechaCierre: la fecha del cierre (para registrar en el historial del abono)
+//   - session: la sesión de Mongoose activa
 //
 // Devuelve:
 //   - montoAplicado: cuánto se destinó a pagar adelantos
 //   - remanente: cuánto queda como ganancia real del día
+export const abonarAdelantos = async (montoDisponible, session) => {
 export const abonarAdelantos = async (montoDisponible, session, fechaCierre = new Date()) => {
   // Traer adelantos pendientes, del más antiguo al más reciente (FIFO)
   const pendientes = await Adelanto.find({ estado: 'pendiente' })
@@ -122,6 +124,9 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
 
     if (montoRestante >= adelanto.saldoPendiente) {
       // Alcanza para cubrir este adelanto completo
+      montoAplicado += adelanto.saldoPendiente
+      montoRestante -= adelanto.saldoPendiente
+      adelanto.montoRecuperado += adelanto.saldoPendiente
       const abonoDelDia = adelanto.saldoPendiente
       montoAplicado += abonoDelDia
       montoRestante -= abonoDelDia
@@ -138,6 +143,9 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
       })
     } else {
       // Solo alcanza para un abono parcial
+      montoAplicado += montoRestante
+      adelanto.montoRecuperado += montoRestante
+      adelanto.saldoPendiente -= montoRestante
       const abonoDelDia = montoRestante
       montoAplicado += abonoDelDia
       adelanto.montoRecuperado += abonoDelDia
@@ -161,3 +169,71 @@ export const abonarAdelantos = async (montoDisponible, session, fechaCierre = ne
     remanente: montoRestante // lo que queda como ganancia neta real
   }
 }
+
+// ─── POST /api/adelantos/:id/abono ───────────────────────────────────────────
+// Permite registrar un abono o pago manual directamente a un adelanto pendiente.
+export const abonarManualAdelanto = async (req, res) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
+  try {
+    const { id } = req.params
+    const { monto } = req.body
+
+    const montoNum = Number(monto)
+    if (!montoNum || montoNum <= 0) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(400).json({ mensaje: '❌ El monto a abonar debe ser mayor a 0' })
+    }
+
+    const adelanto = await Adelanto.findById(id).session(session)
+    if (!adelanto) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(404).json({ mensaje: '❌ Adelanto no encontrado' })
+    }
+
+    if (adelanto.estado === 'recuperado' || adelanto.saldoPendiente <= 0) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(400).json({ mensaje: '⚠️ Este adelanto ya está completamente pagado' })
+    }
+
+    const saldoAntes = adelanto.saldoPendiente
+    const abonoReal = Math.min(montoNum, saldoAntes)
+
+    adelanto.montoRecuperado += abonoReal
+    adelanto.saldoPendiente -= abonoReal
+    if (adelanto.saldoPendiente === 0) {
+      adelanto.estado = 'recuperado'
+    }
+
+    adelanto.abonos.push({
+      fecha: new Date(),
+      monto: abonoReal,
+      saldoAntes,
+      saldoDespues: adelanto.saldoPendiente
+    })
+
+    await adelanto.save({ session })
+    await session.commitTransaction()
+    session.endSession()
+
+    res.status(200).json({
+      mensaje: adelanto.estado === 'recuperado'
+        ? '🎉 ¡Adelanto saldado y pagado completamente!'
+        : `✅ Abono de $${abonoReal.toLocaleString('es-CO')} registrado exitosamente`,
+      adelanto
+    })
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    res.status(500).json({
+      mensaje: '❌ Error al registrar abono',
+      error: error.message
+    })
+  }
+}
+
+
