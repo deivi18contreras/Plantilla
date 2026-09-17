@@ -356,7 +356,6 @@ export const registrarTransferencia = async (req, res) => {
 // ─── GET /api/movimientos ─────────────────────────────────────────────────────
 export const listarMovimientos = async (req, res) => {
     try {
-        const { fecha, desde, hasta, cuenta, page = 1, limit = 200 } = req.query;
         const { fecha, desde, hasta, cuenta, page = 1, limit = 1000 } = req.query;
         let filtro = {};
 
