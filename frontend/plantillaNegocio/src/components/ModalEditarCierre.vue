@@ -282,11 +282,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { putData } from '@/services/apiService'
-import { formatFechaLarga } from '@/utils/dateUtils'
 import { useRemanentesStore } from '@/store/remanentesStore'
 import { formatFechaLarga, formatFechaCorta } from '@/utils/dateUtils'
 
@@ -370,8 +368,6 @@ const totalCierre = computed(() => {
 
 const gastosReales = computed(() => {
   const gTotal = props.cierre?.gastosDia || 0
-  const gExt = Number(form.value.gastosExternos || 0)
-  return Math.max(0, gTotal - gExt)
   return Math.max(0, gTotal - gastosExternosNum.value)
 })
 
@@ -409,10 +405,8 @@ const guardar = async () => {
       efectivoContado: efectivoAjustado,
       recaudoNequi: Number(form.value.recaudoNequi || 0),
       recaudoBancolombia: Number(form.value.recaudoBancolombia || 0),
-      gastosExternos: Number(form.value.gastosExternos || 0),
       gastosExternos: gastosExternosNum.value,
       devolucionPrestamo: devPrestamo,
-      observaciones: form.value.observaciones
       observaciones: form.value.observaciones,
       desgloseRemanentes
     })

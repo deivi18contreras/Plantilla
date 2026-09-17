@@ -42,7 +42,6 @@
             label="Cierres Diarios"
             class="text-weight-bold q-px-sm"
             style="border-radius: 8px; font-size: 12px;"
-            @click="pestanaActiva = 'cierres'"
             @click="pestanaActiva = 'cierres'; cargarParaCierres()"
           />
         </div>
@@ -950,16 +949,12 @@ const iniciarEdicionCierre = (cierre) => {
   modalVerificarAdmin.value = true
 }
 const onAdminAutorizado = () => { modalEditarCierre.value = true }
-const onCierreEditado = async () => { await Promise.all([buscarPorFecha(), cuentasStore.fetchCuentas()]) }
 const onCierreEditado = async () => {
   await Promise.all([buscarPorFecha(), movimientosStore.fetchMovimientos(), cuentasStore.fetchCuentas()])
 }
 const cargarParaCierres = () => {
   filtroFecha.value = ''
   movimientosStore.fetchMovimientos()
-}
-const onCierreEditado = async () => {
-  await Promise.all([movimientosStore.fetchMovimientos(), cuentasStore.fetchCuentas()])
 }
 
 const abrirCompartirCierre = (cierre) => {

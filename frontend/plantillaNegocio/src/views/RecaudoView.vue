@@ -121,18 +121,11 @@
           />
         </div>
 
-        <!-- 4. GASTOS EXTERNOS (OPCIONAL) -->
-        <div class="q-pa-md" style="border-radius: 16px; background: #fff7ed; border: 1px dashed #fb923c;">
-          <div class="row items-center q-gutter-x-xs q-mb-xs">
-            <q-icon name="bolt" color="orange-7" size="18px" />
-            <span class="text-subtitle2 text-weight-bold text-orange-8">4. Gastos con plata externa
-              <span class="text-caption text-orange-5 text-weight-regular">(opcional)</span>
-            </span>
         <!-- 4. GASTOS CON PLATA EXTERNA O SOBRES DE DÍAS ANTERIORES -->
-        <div class="q-pa-md" style="border-radius: 16px; background: #fff7ed; border: 1px solid #fed7aa;">
+        <div class="q-pa-md" style="border-radius: 16px; background: #fff7ed; border: 1.5px solid #fb923c;">
           <div class="row items-center justify-between q-mb-xs" style="flex-wrap: wrap; gap: 8px;">
             <div class="row items-center q-gutter-x-xs">
-              <q-icon name="folder_open" color="orange-8" size="20px" />
+              <q-icon name="folder_open" color="orange-8" size="22px" />
               <span class="text-subtitle2 text-weight-bold text-orange-9">4. Gastos con plata de días anteriores (Sobres)</span>
             </div>
             <q-toggle
@@ -144,22 +137,12 @@
               class="text-weight-bold text-caption text-slate-700"
             />
           </div>
-          <div class="text-caption text-slate-600 q-mb-sm">Ej: si prestaste plata tuya o usaste plata de meses anteriores para pagar un pedido.</div>
-          <q-input
-            v-model="form.gastosExternos"
-            type="number"
-            placeholder="$ 0"
-            prefix="$"
-            borderless
-            class="clean-input"
-          />
-          <div v-if="gastosExternosNum > 0" class="text-caption text-orange-7 q-mt-xs">
-            ⚡ Se descontarán {{ formatCOP(gastosExternosNum) }} del cálculo de Venta Total automáticamente.
+
           <div class="text-caption text-slate-600 q-mb-sm">
-            Si pagaste pedidos temprano sacando efectivo de los sobres de días anteriores, selecciónalos aquí para que el sistema descuente de cada sobre automáticamente y no descuadre tu caja.
+            Si pagaste pedidos temprano sacando efectivo de los sobres de días anteriores, activa la opción de arriba para seleccionar cada sobre y descontarlo en automático.
           </div>
 
-          <!-- LISTA DE SOBRES DISPONIBLES -->
+          <!-- LISTA DE SOBRES DISPONIBLES (si activa el toggle) -->
           <div v-if="usarRemanentes" class="q-mt-sm column q-gutter-y-sm">
             <div v-if="remanentesStore.disponibles.length === 0" class="q-pa-sm bg-orange-100 rounded-borders text-caption text-orange-9">
               ℹ️ No hay sobres con saldo disponible registrado actualmente. Puedes escribir el monto directo abajo.
@@ -221,14 +204,16 @@
           </div>
 
           <!-- Si no activa el toggle, input manual directo -->
-          <div v-else>
+          <div v-else class="q-mt-xs">
             <q-input
               v-model="form.gastosExternos"
               type="number"
               placeholder="$ 0"
               prefix="$"
-              borderless
-              class="clean-input"
+              dense
+              outlined
+              class="bg-white"
+              style="border-radius: 8px;"
             />
           </div>
 
@@ -351,7 +336,6 @@ import { useRemanentesStore } from '@/store/remanentesStore'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/authStore'
 import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
-import { formatFechaLarga, getFechaLocalHoy } from '@/utils/dateUtils'
 import { formatFechaLarga, formatFechaCorta, getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
@@ -399,8 +383,6 @@ const totalCierreLiquid = computed(() => {
   return recaudoEfectivoNeto.value + Number(form.value.recaudoNequi || 0) + Number(form.value.recaudoBancolombia || 0)
 })
 
-// Gastos externos (préstamos, plata de meses anteriores) que NO cuentan como venta real
-const gastosExternosNum = computed(() => Math.max(0, Number(form.value.gastosExternos || 0)))
 // Total sacado de sobres de días anteriores
 const totalSacadoSobres = computed(() => {
   return Object.values(montosSobres.value).reduce((sum, val) => sum + (Number(val) || 0), 0)
@@ -518,15 +500,12 @@ const handleSubmit = async () => {
       efectivoContado: efectivoAjustado,
       recaudoNequi: Number(form.value.recaudoNequi || 0),
       recaudoBancolombia: Number(form.value.recaudoBancolombia || 0),
-      gastosExternos: Number(form.value.gastosExternos || 0),
       gastosExternos: gastosExternosNum.value,
       devolucionPrestamo: devPrestamo,
-      observaciones: form.value.observaciones
       observaciones: form.value.observaciones,
       desgloseRemanentes
     })
 
-    await cuentasStore.fetchCuentas()
     await Promise.all([cuentasStore.fetchCuentas(), remanentesStore.fetchDisponibles()])
     textoWhatsApp.value = generarTextoWhatsApp()
     modalCompartir.value = true
