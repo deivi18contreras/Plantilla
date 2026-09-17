@@ -32,6 +32,7 @@ export const useMovimientosStore = defineStore('movimientos', {
       this.loading = true
       try {
         this.movimientos = await getData('/movimientos')
+        this.movimientos = await getData('/movimientos', { limit: 1000 })
       } catch (error) {
         console.error('Error al cargar todos los movimientos:', error)
       } finally {
