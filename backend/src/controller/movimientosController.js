@@ -69,6 +69,7 @@ export const registrarCierreDiario = async (req, res) => {
     session.startTransaction();
 
     try {
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion } = req.body;
         const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion, desgloseRemanentes } = req.body;
 
         if (!fecha) {
@@ -81,6 +82,7 @@ export const registrarCierreDiario = async (req, res) => {
         const eContado = Number(efectivoContado || 0);
         const rNequi = Number(recaudoNequi || 0);
         const rBancolombia = Number(recaudoBancolombia || 0);
+        const gExt = Number(gastosExternos || 0);
         const totalRemanentesUsados = (desgloseRemanentes && Array.isArray(desgloseRemanentes))
             ? desgloseRemanentes.reduce((sum, d) => sum + Number(d.monto || 0), 0)
             : 0;
@@ -400,6 +402,7 @@ export const registrarTransferencia = async (req, res) => {
 // ─── GET /api/movimientos ─────────────────────────────────────────────────────
 export const listarMovimientos = async (req, res) => {
     try {
+        const { fecha, desde, hasta, cuenta, page = 1, limit = 200 } = req.query;
         const { fecha, desde, hasta, cuenta, page = 1, limit = 1000 } = req.query;
         let filtro = {};
 
@@ -737,6 +740,7 @@ export const editarCierreDiario = async (req, res) => {
     session.startTransaction();
 
     try {
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion } = req.body;
         const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion, desgloseRemanentes } = req.body;
 
         if (!fecha) {
@@ -781,6 +785,7 @@ export const editarCierreDiario = async (req, res) => {
         const eContado = Number(efectivoContado || 0);
         const rNequi = Number(recaudoNequi || 0);
         const rBancolombia = Number(recaudoBancolombia || 0);
+        const gExt = Number(gastosExternos || 0);
         const totalRemanentesUsados = (desgloseRemanentes && Array.isArray(desgloseRemanentes))
             ? desgloseRemanentes.reduce((sum, d) => sum + Number(d.monto || 0), 0)
             : 0;
