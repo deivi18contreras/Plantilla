@@ -130,6 +130,9 @@
       </div>
     </div>
 
+    <!-- ─── FILA 5: SOBRES DE EFECTIVO DISPONIBLES (FÍSICO) ─── -->
+    <DashboardSobresEfectivo />
+
 
     <!-- MODAL EXTRACTO RÁPIDO DE CUENTA -->
     <ModalExtractoCuenta
@@ -160,6 +163,7 @@ import DashboardResumenMes from '@/components/dashboard/DashboardResumenMes.vue'
 import DashboardAdelantos from '@/components/dashboard/DashboardAdelantos.vue'
 import DashboardAccionesRapidas from '@/components/dashboard/DashboardAccionesRapidas.vue'
 import DashboardTendencia from '@/components/dashboard/DashboardTendencia.vue'
+import DashboardSobresEfectivo from '@/components/dashboard/DashboardSobresEfectivo.vue'
 import ModalExtractoCuenta from '@/components/ModalExtractoCuenta.vue'
 
 const authStore = useAuthStore()

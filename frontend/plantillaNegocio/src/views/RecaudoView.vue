@@ -128,6 +128,21 @@
             <span class="text-subtitle2 text-weight-bold text-orange-8">4. Gastos con plata externa
               <span class="text-caption text-orange-5 text-weight-regular">(opcional)</span>
             </span>
+        <!-- 4. GASTOS CON PLATA EXTERNA O SOBRES DE DÍAS ANTERIORES -->
+        <div class="q-pa-md" style="border-radius: 16px; background: #fff7ed; border: 1px solid #fed7aa;">
+          <div class="row items-center justify-between q-mb-xs" style="flex-wrap: wrap; gap: 8px;">
+            <div class="row items-center q-gutter-x-xs">
+              <q-icon name="folder_open" color="orange-8" size="20px" />
+              <span class="text-subtitle2 text-weight-bold text-orange-9">4. Gastos con plata de días anteriores (Sobres)</span>
+            </div>
+            <q-toggle
+              v-model="usarRemanentes"
+              dense
+              color="orange-8"
+              label="¿Sacaste plata de sobres anteriores?"
+              left-label
+              class="text-weight-bold text-caption text-slate-700"
+            />
           </div>
           <div class="text-caption text-slate-600 q-mb-sm">Ej: si prestaste plata tuya o usaste plata de meses anteriores para pagar un pedido.</div>
           <q-input
@@ -140,6 +155,85 @@
           />
           <div v-if="gastosExternosNum > 0" class="text-caption text-orange-7 q-mt-xs">
             ⚡ Se descontarán {{ formatCOP(gastosExternosNum) }} del cálculo de Venta Total automáticamente.
+          <div class="text-caption text-slate-600 q-mb-sm">
+            Si pagaste pedidos temprano sacando efectivo de los sobres de días anteriores, selecciónalos aquí para que el sistema descuente de cada sobre automáticamente y no descuadre tu caja.
+          </div>
+
+          <!-- LISTA DE SOBRES DISPONIBLES -->
+          <div v-if="usarRemanentes" class="q-mt-sm column q-gutter-y-sm">
+            <div v-if="remanentesStore.disponibles.length === 0" class="q-pa-sm bg-orange-100 rounded-borders text-caption text-orange-9">
+              ℹ️ No hay sobres con saldo disponible registrado actualmente. Puedes escribir el monto directo abajo.
+            </div>
+
+            <div
+              v-for="sobre in remanentesStore.disponibles"
+              :key="sobre._id"
+              class="q-pa-sm bg-white rounded-borders shadow-1"
+              style="border: 1px solid #fed7aa; border-radius: 12px;"
+            >
+              <div class="row items-center justify-between q-mb-xs">
+                <div class="row items-center q-gutter-x-xs">
+                  <q-icon name="mail" color="orange-8" size="16px" />
+                  <span class="text-caption text-weight-bold text-slate-800">
+                    Sobre del {{ formatFechaCorta(sobre.fecha) }}
+                  </span>
+                </div>
+                <span class="text-caption text-weight-bolder text-green-7">
+                  Disponible: {{ formatCOP(sobre.saldoDisponible) }}
+                </span>
+              </div>
+
+              <div class="row items-center q-col-gutter-sm">
+                <div class="col-12 col-sm-7">
+                  <q-input
+                    v-model.number="montosSobres[sobre._id]"
+                    type="number"
+                    placeholder="Monto sacado de este sobre"
+                    prefix="$"
+                    dense
+                    outlined
+                    class="bg-slate-50"
+                    style="border-radius: 8px;"
+                  />
+                </div>
+                <div class="col-12 col-sm-5 text-right">
+                  <span v-if="montosSobres[sobre._id] > 0" class="text-caption text-orange-8 font-medium">
+                    Le quedará: <strong>{{ formatCOP(Math.max(0, sobre.saldoDisponible - montosSobres[sobre._id])) }}</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entrada adicional opcional para otra plata externa (billetera personal) -->
+            <div class="q-pt-xs">
+              <div class="text-caption text-slate-500 q-mb-xs">Otra plata externa / Préstamo personal adicional (opcional):</div>
+              <q-input
+                v-model.number="otraPlataExterna"
+                type="number"
+                placeholder="$ 0"
+                prefix="$"
+                dense
+                outlined
+                class="bg-white"
+                style="border-radius: 8px;"
+              />
+            </div>
+          </div>
+
+          <!-- Si no activa el toggle, input manual directo -->
+          <div v-else>
+            <q-input
+              v-model="form.gastosExternos"
+              type="number"
+              placeholder="$ 0"
+              prefix="$"
+              borderless
+              class="clean-input"
+            />
+          </div>
+
+          <div v-if="gastosExternosNum > 0" class="text-caption text-orange-8 text-weight-bold q-mt-xs">
+            ⚡ Total que saldrá de remanentes anteriores: {{ formatCOP(gastosExternosNum) }} (se restará de los sobres y del cálculo de venta de hoy).
           </div>
         </div>
 
@@ -253,15 +347,18 @@ import { useQuasar } from 'quasar'
 import { postData, getData } from '@/services/apiService'
 import { useCuentasStore } from '@/store/cuentasStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
+import { useRemanentesStore } from '@/store/remanentesStore'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/authStore'
 import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
 import { formatFechaLarga, getFechaLocalHoy } from '@/utils/dateUtils'
+import { formatFechaLarga, formatFechaCorta, getFechaLocalHoy } from '@/utils/dateUtils'
 
 const $q = useQuasar()
 const router = useRouter()
 const cuentasStore = useCuentasStore()
 const configStore = useConfiguracionStore()
+const remanentesStore = useRemanentesStore()
 const authStore = useAuthStore()
 
 const loading = ref(false)
@@ -272,6 +369,10 @@ const cierreYaExiste = ref(false)
 const modalCompartir = ref(false)
 const textoWhatsApp = ref('')
 const ultimoCierreData = ref(null)
+
+const usarRemanentes = ref(false)
+const montosSobres = ref({})
+const otraPlataExterna = ref(null)
 
 const form = ref({
   fecha: getFechaLocalHoy(),
@@ -300,6 +401,18 @@ const totalCierreLiquid = computed(() => {
 
 // Gastos externos (préstamos, plata de meses anteriores) que NO cuentan como venta real
 const gastosExternosNum = computed(() => Math.max(0, Number(form.value.gastosExternos || 0)))
+// Total sacado de sobres de días anteriores
+const totalSacadoSobres = computed(() => {
+  return Object.values(montosSobres.value).reduce((sum, val) => sum + (Number(val) || 0), 0)
+})
+
+// Gastos externos (remanentes anteriores, préstamos, plata de meses anteriores) que NO cuentan como venta real
+const gastosExternosNum = computed(() => {
+  if (usarRemanentes.value) {
+    return totalSacadoSobres.value + (Number(otraPlataExterna.value) || 0)
+  }
+  return Math.max(0, Number(form.value.gastosExternos || 0))
+})
 
 // VENTA REAL = (Gastos pagados en Efectivo de caja - Gastos Externos) + Cierre Total + Devolución de préstamos
 const totalVentaDia = computed(() => {
@@ -384,17 +497,37 @@ const handleSubmit = async () => {
     const cadenaApartada = Number(form.value.cadena || 0)
     const devPrestamo = devolucionNum.value
     const efectivoAjustado = Number(form.value.efectivoContado || 0) - cadenaApartada - devPrestamo
+
+    const desgloseRemanentes = []
+    if (usarRemanentes.value) {
+      for (const sobre of remanentesStore.disponibles) {
+        const m = Number(montosSobres.value[sobre._id] || 0)
+        if (m > 0) {
+          desgloseRemanentes.push({
+            remanenteId: sobre._id,
+            fechaRemanente: sobre.fecha,
+            monto: m,
+            motivo: `Usado para pedidos el ${form.value.fecha}`
+          })
+        }
+      }
+    }
+
     await postData('/movimientos/cierre-diario', {
       fecha: form.value.fecha,
       efectivoContado: efectivoAjustado,
       recaudoNequi: Number(form.value.recaudoNequi || 0),
       recaudoBancolombia: Number(form.value.recaudoBancolombia || 0),
       gastosExternos: Number(form.value.gastosExternos || 0),
+      gastosExternos: gastosExternosNum.value,
       devolucionPrestamo: devPrestamo,
       observaciones: form.value.observaciones
+      observaciones: form.value.observaciones,
+      desgloseRemanentes
     })
 
     await cuentasStore.fetchCuentas()
+    await Promise.all([cuentasStore.fetchCuentas(), remanentesStore.fetchDisponibles()])
     textoWhatsApp.value = generarTextoWhatsApp()
     modalCompartir.value = true
   } catch (error) {
@@ -413,5 +546,10 @@ onMounted(async () => {
   form.value.cadena = configStore.cadenaDefault
   await cuentasStore.fetchCuentas()
   await cargarGastosDelDia()
+  await Promise.all([
+    cuentasStore.fetchCuentas(),
+    cargarGastosDelDia(),
+    remanentesStore.fetchDisponibles()
+  ])
 })
 </script>

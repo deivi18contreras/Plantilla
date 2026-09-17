@@ -111,6 +111,7 @@
           <q-separator style="opacity: 0.6;" />
 
           <!-- SECCIÓN 3: OTROS AJUSTES -->
+          <!-- SECCIÓN 3: OTROS AJUSTES / GASTOS CON SOBRES -->
           <div style="width: 100%;">
             <div class="text-caption text-weight-bolder text-slate-800 text-uppercase q-mb-xs" style="letter-spacing: 0.5px;">⚡ Otros Ajustes</div>
             <div class="text-caption text-slate-500 q-mb-xs">Gastos con plata externa (opcional):</div>
@@ -122,6 +123,95 @@
               borderless
               class="clean-input"
             />
+            <div class="row items-center justify-between q-mb-xs" style="flex-wrap: wrap; gap: 8px;">
+              <span class="text-caption text-weight-bolder text-slate-800 text-uppercase" style="letter-spacing: 0.5px;">⚡ Gastos con plata de días anteriores</span>
+              <q-toggle
+                v-model="usarRemanentes"
+                dense
+                color="orange-8"
+                label="¿Usó sobres anteriores?"
+                left-label
+                class="text-weight-bold text-caption text-slate-700"
+              />
+            </div>
+
+            <!-- LISTA DE SOBRES DISPONIBLES -->
+            <div v-if="usarRemanentes" class="q-mt-sm column q-gutter-y-sm">
+              <div v-if="remanentesStore.disponibles.length === 0" class="q-pa-sm bg-orange-100 rounded-borders text-caption text-orange-9">
+                ℹ️ No hay otros sobres disponibles registrados actualmente. Puedes colocar el valor manual abajo.
+              </div>
+
+              <div
+                v-for="sobre in remanentesStore.disponibles"
+                :key="sobre._id"
+                class="q-pa-sm bg-white rounded-borders shadow-1"
+                style="border: 1px solid #fed7aa; border-radius: 12px;"
+              >
+                <div class="row items-center justify-between q-mb-xs">
+                  <div class="row items-center q-gutter-x-xs">
+                    <q-icon name="mail" color="orange-8" size="16px" />
+                    <span class="text-caption text-weight-bold text-slate-800">
+                      Sobre del {{ formatFechaCorta(sobre.fecha) }}
+                    </span>
+                  </div>
+                  <span class="text-caption text-weight-bolder text-green-7">
+                    Disponible: {{ formatCOP(sobre.saldoDisponible) }}
+                  </span>
+                </div>
+
+                <div class="row items-center q-col-gutter-sm">
+                  <div class="col-12 col-sm-7">
+                    <q-input
+                      v-model.number="montosSobres[sobre._id]"
+                      type="number"
+                      placeholder="Monto sacado"
+                      prefix="$"
+                      dense
+                      outlined
+                      class="bg-slate-50"
+                      style="border-radius: 8px;"
+                    />
+                  </div>
+                  <div class="col-12 col-sm-5 text-right">
+                    <span v-if="montosSobres[sobre._id] > 0" class="text-caption text-orange-8 font-medium">
+                      Le quedará: <strong>{{ formatCOP(Math.max(0, sobre.saldoDisponible - montosSobres[sobre._id])) }}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Manual / Otra plata externa -->
+              <div class="q-pt-xs">
+                <div class="text-caption text-slate-500 q-mb-xs">Otra plata externa / Préstamo personal (opcional):</div>
+                <q-input
+                  v-model.number="otraPlataExterna"
+                  type="number"
+                  placeholder="$ 0"
+                  prefix="$"
+                  dense
+                  outlined
+                  class="bg-white"
+                  style="border-radius: 8px;"
+                />
+              </div>
+            </div>
+
+            <!-- Entrada manual simple si no activa el toggle -->
+            <div v-else>
+              <div class="text-caption text-slate-500 q-mb-xs">Gastos con plata externa (opcional):</div>
+              <q-input
+                v-model="form.gastosExternos"
+                type="number"
+                placeholder="$ 0"
+                prefix="$"
+                borderless
+                class="clean-input"
+              />
+            </div>
+
+            <div v-if="gastosExternosNum > 0" class="text-caption text-orange-8 text-weight-bold q-mt-xs">
+              ⚡ Total gastos externos: {{ formatCOP(gastosExternosNum) }}
+            </div>
           </div>
 
           <q-separator style="opacity: 0.6;" />
@@ -193,9 +283,12 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { putData } from '@/services/apiService'
 import { formatFechaLarga } from '@/utils/dateUtils'
+import { useRemanentesStore } from '@/store/remanentesStore'
+import { formatFechaLarga, formatFechaCorta } from '@/utils/dateUtils'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -208,7 +301,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'guardado'])
 
 const $q = useQuasar()
+const remanentesStore = useRemanentesStore()
 const guardando = ref(false)
+
+const usarRemanentes = ref(false)
+const montosSobres = ref({})
+const otraPlataExterna = ref(null)
 
 const form = ref({
   efectivoContado: 0,
@@ -233,6 +331,10 @@ watch(() => props.cierre, (c) => {
       gastosExternos: c.gastosExternos || 0,
       observaciones: c.observaciones || ''
     }
+    montosSobres.value = {}
+    otraPlataExterna.value = null
+    usarRemanentes.value = false
+    remanentesStore.fetchDisponibles()
   }
 }, { immediate: true })
 
@@ -251,6 +353,17 @@ const recaudoEfectivoNeto = computed(() => {
   return Math.max(0, contado - BASE_EFECTIVO - cadena - devPrestamo)
 })
 
+const totalSacadoSobres = computed(() => {
+  return Object.values(montosSobres.value).reduce((sum, val) => sum + (Number(val) || 0), 0)
+})
+
+const gastosExternosNum = computed(() => {
+  if (usarRemanentes.value) {
+    return totalSacadoSobres.value + (Number(otraPlataExterna.value) || 0)
+  }
+  return Math.max(0, Number(form.value.gastosExternos || 0))
+})
+
 const totalCierre = computed(() => {
   return recaudoEfectivoNeto.value + Number(form.value.recaudoNequi || 0) + Number(form.value.recaudoBancolombia || 0)
 })
@@ -259,6 +372,7 @@ const gastosReales = computed(() => {
   const gTotal = props.cierre?.gastosDia || 0
   const gExt = Number(form.value.gastosExternos || 0)
   return Math.max(0, gTotal - gExt)
+  return Math.max(0, gTotal - gastosExternosNum.value)
 })
 
 const totalVenta = computed(() => {
@@ -275,14 +389,32 @@ const guardar = async () => {
     const devPrestamo = Number(form.value.devolucionPrestamo || 0)
     const efectivoAjustado = Number(form.value.efectivoContado || 0) - cadenaApartada - devPrestamo
 
+    const desgloseRemanentes = []
+    if (usarRemanentes.value) {
+      for (const sobre of remanentesStore.disponibles) {
+        const m = Number(montosSobres.value[sobre._id] || 0)
+        if (m > 0) {
+          desgloseRemanentes.push({
+            remanenteId: sobre._id,
+            fechaRemanente: sobre.fecha,
+            monto: m,
+            motivo: `Ajuste en cierre ${props.cierre.fecha.split('T')[0]}`
+          })
+        }
+      }
+    }
+
     await putData('/movimientos/cierre-diario', {
       fecha: props.cierre.fecha,
       efectivoContado: efectivoAjustado,
       recaudoNequi: Number(form.value.recaudoNequi || 0),
       recaudoBancolombia: Number(form.value.recaudoBancolombia || 0),
       gastosExternos: Number(form.value.gastosExternos || 0),
+      gastosExternos: gastosExternosNum.value,
       devolucionPrestamo: devPrestamo,
       observaciones: form.value.observaciones
+      observaciones: form.value.observaciones,
+      desgloseRemanentes
     })
 
     $q.notify({
@@ -290,6 +422,7 @@ const guardar = async () => {
       message: '✅ Cierre Diario actualizado correctamente'
     })
 
+    await remanentesStore.fetchDisponibles()
     emit('guardado')
     emit('update:modelValue', false)
 
@@ -302,4 +435,8 @@ const guardar = async () => {
     guardando.value = false
   }
 }
+
+onMounted(() => {
+  remanentesStore.fetchDisponibles()
+})
 </script>

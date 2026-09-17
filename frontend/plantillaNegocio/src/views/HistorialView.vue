@@ -951,6 +951,9 @@ const iniciarEdicionCierre = (cierre) => {
 }
 const onAdminAutorizado = () => { modalEditarCierre.value = true }
 const onCierreEditado = async () => { await Promise.all([buscarPorFecha(), cuentasStore.fetchCuentas()]) }
+const onCierreEditado = async () => {
+  await Promise.all([buscarPorFecha(), movimientosStore.fetchMovimientos(), cuentasStore.fetchCuentas()])
+}
 const cargarParaCierres = () => {
   filtroFecha.value = ''
   movimientosStore.fetchMovimientos()

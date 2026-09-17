@@ -3,6 +3,7 @@ import Movimiento from '../models/Movimientos.js';
 import Cuenta from '../models/Cuentas.js';
 import { abonarAdelantos } from './adelantosController.js';
 import { registrarAhorroMes } from './ahorrosController.js';
+import Remanente from '../models/Remanente.js';
 
 
 // ─── POST /api/movimientos/gasto ──────────────────────────────────────────────
@@ -69,6 +70,7 @@ export const registrarCierreDiario = async (req, res) => {
 
     try {
         const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion } = req.body;
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion, desgloseRemanentes } = req.body;
 
         if (!fecha) {
             await session.abortTransaction();
@@ -81,6 +83,10 @@ export const registrarCierreDiario = async (req, res) => {
         const rNequi = Number(recaudoNequi || 0);
         const rBancolombia = Number(recaudoBancolombia || 0);
         const gExt = Number(gastosExternos || 0);
+        const totalRemanentesUsados = (desgloseRemanentes && Array.isArray(desgloseRemanentes))
+            ? desgloseRemanentes.reduce((sum, d) => sum + Number(d.monto || 0), 0)
+            : 0;
+        const gExt = totalRemanentesUsados > 0 ? totalRemanentesUsados : Number(gastosExternos || 0);
         const devPrestamo = Number(devolucionPrestamo || 0);
 
         // Arqueo Efectivo Neto sobrante (por encima de los $600.000 de base)
@@ -119,6 +125,46 @@ export const registrarCierreDiario = async (req, res) => {
             cuentaEfectivo.saldo -= gExt;
         }
         await cuentaEfectivo.save({ session });
+
+        // Actualizar remanentes usados si se especificaron
+        if (desgloseRemanentes && Array.isArray(desgloseRemanentes)) {
+            for (const d of desgloseRemanentes) {
+                const mUsado = Number(d.monto || 0);
+                if (mUsado > 0 && d.remanenteId) {
+                    const rDoc = await Remanente.findById(d.remanenteId).session(session);
+                    if (rDoc) {
+                        rDoc.montoGastado = (rDoc.montoGastado || 0) + mUsado;
+                        rDoc.saldoDisponible = Math.max(0, rDoc.montoInicial - rDoc.montoGastado);
+                        rDoc.usos.push({
+                            fechaUso: new Date(fecha),
+                            monto: mUsado,
+                            motivo: d.motivo || observaciones || `Gastos pagados el ${String(fecha).split('T')[0]}`,
+                            cierreDestinoFecha: new Date(fecha)
+                        });
+                        await rDoc.save({ session });
+                    }
+                }
+            }
+        }
+
+        // Crear/actualizar el sobre (Remanente) de este día
+        const dateStrRem = String(fecha).split('T')[0];
+        const [yR, mR, dR] = dateStrRem.split('-').map(Number);
+        const fechaRemanente = new Date(Date.UTC(yR, mR - 1, dR, 0, 0, 0));
+
+        if (recaudoEfectivoNeto > 0) {
+            await Remanente.findOneAndUpdate(
+                { fecha: fechaRemanente },
+                {
+                    fecha: fechaRemanente,
+                    montoInicial: recaudoEfectivoNeto,
+                    saldoDisponible: recaudoEfectivoNeto,
+                    montoGastado: 0,
+                    activo: true
+                },
+                { upsert: true, new: true, session }
+            );
+        }
 
         // 2. Procesar Nequi
         if (rNequi > 0) {
@@ -356,6 +402,7 @@ export const registrarTransferencia = async (req, res) => {
 // ─── GET /api/movimientos ─────────────────────────────────────────────────────
 export const listarMovimientos = async (req, res) => {
     try {
+        const { fecha, desde, hasta, cuenta, page = 1, limit = 200 } = req.query;
         const { fecha, desde, hasta, cuenta, page = 1, limit = 1000 } = req.query;
         let filtro = {};
 
@@ -694,6 +741,7 @@ export const editarCierreDiario = async (req, res) => {
 
     try {
         const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion } = req.body;
+        const { fecha, efectivoContado, recaudoNequi, recaudoBancolombia, observaciones, gastosExternos, devolucionPrestamo, notaDevolucion, desgloseRemanentes } = req.body;
 
         if (!fecha) {
             await session.abortTransaction();
@@ -738,6 +786,10 @@ export const editarCierreDiario = async (req, res) => {
         const rNequi = Number(recaudoNequi || 0);
         const rBancolombia = Number(recaudoBancolombia || 0);
         const gExt = Number(gastosExternos || 0);
+        const totalRemanentesUsados = (desgloseRemanentes && Array.isArray(desgloseRemanentes))
+            ? desgloseRemanentes.reduce((sum, d) => sum + Number(d.monto || 0), 0)
+            : 0;
+        const gExt = totalRemanentesUsados > 0 ? totalRemanentesUsados : Number(gastosExternos || 0);
         const devPrestamo = Number(devolucionPrestamo || 0);
 
         const recaudoEfectivoNeto = Math.max(0, eContado - BASE_EFECTIVO);
@@ -773,6 +825,41 @@ export const editarCierreDiario = async (req, res) => {
             cuentaEfectivo.saldo -= gExt;
         }
         await cuentaEfectivo.save({ session });
+
+        // Actualizar remanentes usados si se especificaron
+        if (desgloseRemanentes && Array.isArray(desgloseRemanentes)) {
+            for (const d of desgloseRemanentes) {
+                const mUsado = Number(d.monto || 0);
+                if (mUsado > 0 && d.remanenteId) {
+                    const rDoc = await Remanente.findById(d.remanenteId).session(session);
+                    if (rDoc) {
+                        rDoc.montoGastado = (rDoc.montoGastado || 0) + mUsado;
+                        rDoc.saldoDisponible = Math.max(0, rDoc.montoInicial - rDoc.montoGastado);
+                        rDoc.usos.push({
+                            fechaUso: new Date(Date.UTC(year, month - 1, day, 0, 0, 0)),
+                            monto: mUsado,
+                            motivo: d.motivo || observaciones || `Gastos pagados en cierre ${dateStr}`,
+                            cierreDestinoFecha: new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+                        });
+                        await rDoc.save({ session });
+                    }
+                }
+            }
+        }
+
+        // Actualizar el sobre (Remanente) de este día
+        const fechaRemanente = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+        await Remanente.findOneAndUpdate(
+            { fecha: fechaRemanente },
+            {
+                fecha: fechaRemanente,
+                montoInicial: recaudoEfectivoNeto,
+                saldoDisponible: recaudoEfectivoNeto,
+                montoGastado: 0,
+                activo: true
+            },
+            { upsert: true, new: true, session }
+        );
 
         // Nequi
         if (rNequi > 0) {
