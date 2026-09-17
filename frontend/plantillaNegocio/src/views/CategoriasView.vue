@@ -228,15 +228,69 @@
           </div>
         </div>
 
+        <!-- Barra Flotante de Acciones Masivas (cuando hay gastos seleccionados) -->
+        <transition name="fade">
+          <div v-if="seleccionados.length > 0" class="bulk-action-bar row items-center justify-between q-px-md q-py-sm q-mb-md shadow-1">
+            <div class="row items-center q-gutter-x-sm">
+              <q-badge color="primary" class="q-px-sm q-py-xs text-weight-bold" style="font-size: 13px; border-radius: 8px;">
+                <q-icon name="check_circle" size="14px" class="q-mr-xs" />
+                {{ seleccionados.length }} seleccionados
+              </q-badge>
+              <span class="text-caption text-weight-bolder text-slate-800 gt-xs">
+                Total: {{ formatCOP(montoTotalSeleccionados) }}
+              </span>
+              <q-btn
+                v-if="seleccionados.length < gastosFiltrados.length"
+                flat dense no-caps
+                size="sm"
+                color="primary"
+                icon="select_all"
+                :label="`Seleccionar todos (${gastosFiltrados.length})`"
+                class="text-weight-bold q-ml-xs gt-sm"
+                @click="seleccionarTodosFiltrados"
+              />
+            </div>
+            <div class="row items-center q-gutter-x-sm">
+              <q-btn
+                flat dense no-caps
+                size="sm"
+                color="slate-600"
+                icon="close"
+                label="Deseleccionar"
+                class="text-weight-bold"
+                @click="limpiarSeleccion"
+              />
+              <q-btn
+                unelevated no-caps
+                color="negative"
+                icon="delete"
+                :label="`Eliminar seleccionados (${seleccionados.length})`"
+                class="text-weight-bold shadow-1 btn-delete-bulk"
+                :loading="cargando"
+                @click="confirmarEliminarMultiples"
+              />
+            </div>
+          </div>
+        </transition>
+
         <!-- Tabla Estilizada de Gastos -->
         <div class="table-container">
           <div class="table-header row items-center text-slate-500 text-caption font-bold q-px-md q-py-sm">
-            <div style="width: 120px;">Fecha</div>
-            <div style="flex: 1; min-width: 140px;">Descripción</div>
-            <div style="width: 140px;" class="gt-xs">Categoría</div>
-            <div style="width: 100px;" class="text-right">Monto</div>
-            <div style="width: 120px;" class="text-center gt-sm">Método de pago</div>
-            <div style="width: 80px;" class="text-center">Acciones</div>
+            <div style="width: 36px;" class="text-center">
+              <q-checkbox
+                :model-value="todosPaginaSeleccionados"
+                :indeterminate="algunosPaginaSeleccionados"
+                dense
+                color="primary"
+                @update:model-value="toggleSeleccionarTodosPagina"
+              />
+            </div>
+            <div style="width: 110px;">Fecha</div>
+            <div style="flex: 1; min-width: 130px;">Descripción</div>
+            <div style="width: 130px;" class="gt-xs">Categoría</div>
+            <div style="width: 95px;" class="text-right">Monto</div>
+            <div style="width: 115px;" class="text-center gt-sm">Método de pago</div>
+            <div style="width: 70px;" class="text-center">Acciones</div>
           </div>
 
           <!-- Spinner -->
@@ -257,9 +311,20 @@
               v-for="item in gastosPaginados"
               :key="item._id"
               class="table-row row items-center q-px-md q-py-sm"
+              :class="{ 'table-row--selected': seleccionados.includes(item._id) }"
             >
+              <!-- Checkbox de Selección Masiva -->
+              <div style="width: 36px;" class="text-center" @click.stop>
+                <q-checkbox
+                  v-model="seleccionados"
+                  :val="item._id"
+                  dense
+                  color="primary"
+                />
+              </div>
+
               <!-- Fecha y Hora -->
-              <div style="width: 120px;">
+              <div style="width: 110px;">
                 <div class="text-weight-bold text-slate-900" style="font-size: 12.5px;">
                   {{ formatFechaItem(item.fecha) }}
                 </div>
@@ -269,31 +334,31 @@
               </div>
 
               <!-- Descripción con Ícono Redondo -->
-              <div class="row items-center q-gutter-x-xs" style="flex: 1; min-width: 140px;">
+              <div class="row items-center q-gutter-x-xs" style="flex: 1; min-width: 130px;">
                 <q-avatar size="32px" color="purple-1" text-color="purple-8" style="font-size: 15px;">
                   {{ iconoPorCategoria(item.categoria) }}
                 </q-avatar>
-                <div class="text-weight-bold text-slate-900 text-truncate" style="font-size: 13px; max-width: 200px;">
+                <div class="text-weight-bold text-slate-900 text-truncate" style="font-size: 13px; max-width: 190px;">
                   {{ item.descripcion || item.categoria || 'Gasto registrado' }}
                 </div>
               </div>
 
               <!-- Categoría (Badge Pill con Color Suave) -->
-              <div style="width: 140px;" class="gt-xs">
+              <div style="width: 130px;" class="gt-xs">
                 <span class="categoria-badge" :style="estiloBadgeCategoria(item.categoria)">
                   {{ item.categoria || 'General' }}
                 </span>
               </div>
 
               <!-- Monto -->
-              <div style="width: 100px;" class="text-right">
+              <div style="width: 95px;" class="text-right">
                 <div class="text-weight-bolder text-slate-900" style="font-size: 13.5px;">
                   {{ formatCOP(item.monto) }}
                 </div>
               </div>
 
               <!-- Método de Pago (Badge con Ícono) -->
-              <div style="width: 120px;" class="text-center gt-sm">
+              <div style="width: 115px;" class="text-center gt-sm">
                 <span
                   class="metodo-badge"
                   :class="{
@@ -308,7 +373,7 @@
               </div>
 
               <!-- Acciones: Editar y Eliminar -->
-              <div style="width: 80px;" class="row items-center justify-center q-gutter-x-xs">
+              <div style="width: 70px;" class="row items-center justify-center q-gutter-x-xs">
                 <q-btn flat round dense icon="edit" size="xs" color="blue-6" @click="iniciarEdicionGasto(item)" title="Editar" />
                 <q-btn flat round dense icon="delete_outline" size="xs" color="red-5" @click="confirmarEliminarGasto(item)" title="Eliminar" />
               </div>
@@ -473,7 +538,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import VueApexCharts from 'vue3-apexcharts'
-import { getData, putData, deleteData } from '@/services/apiService'
+import { getData, putData, deleteData, postData } from '@/services/apiService'
 import { formatFechaCorta } from '@/utils/dateUtils'
 
 const router = useRouter()
@@ -483,6 +548,82 @@ const cargando = ref(false)
 const busqueda = ref('')
 const paginaActual = ref(1)
 const POR_PAGINA = 8
+
+// ─── SELECCIÓN MÚLTIPLE DE GASTOS ───
+const seleccionados = ref([])
+
+const todosPaginaSeleccionados = computed(() => {
+  if (!gastosPaginados.value.length) return false
+  return gastosPaginados.value.every(g => seleccionados.value.includes(g._id))
+})
+
+const algunosPaginaSeleccionados = computed(() => {
+  if (todosPaginaSeleccionados.value) return false
+  return gastosPaginados.value.some(g => seleccionados.value.includes(g._id))
+})
+
+const toggleSeleccionarTodosPagina = (val) => {
+  if (val) {
+    const idsPagina = gastosPaginados.value.map(g => g._id)
+    seleccionados.value = Array.from(new Set([...seleccionados.value, ...idsPagina]))
+  } else {
+    const idsPaginaSet = new Set(gastosPaginados.value.map(g => g._id))
+    seleccionados.value = seleccionados.value.filter(id => !idsPaginaSet.has(id))
+  }
+}
+
+const seleccionarTodosFiltrados = () => {
+  seleccionados.value = gastosFiltrados.value.map(g => g._id)
+}
+
+const limpiarSeleccion = () => {
+  seleccionados.value = []
+}
+
+const montoTotalSeleccionados = computed(() => {
+  const mapGastos = new Map(movimientosGastos.value.map(g => [g._id, g.monto || 0]))
+  return seleccionados.value.reduce((sum, id) => sum + (mapGastos.get(id) || 0), 0)
+})
+
+const confirmarEliminarMultiples = () => {
+  const cantidad = seleccionados.value.length
+  if (cantidad === 0) return
+
+  $q.dialog({
+    title: '⚠️ Confirmar eliminación múltiple',
+    message: `¿Estás seguro de que deseas eliminar permanentemente estos ${cantidad} gastos por un total de ${formatCOP(montoTotalSeleccionados.value)}?\n\nLos saldos de las cuentas se recalcularán automáticamente. Esta acción no se puede deshacer.`,
+    cancel: { label: 'Cancelar', flat: true, noCaps: true, color: 'slate-600' },
+    ok: { label: `Sí, eliminar ${cantidad} gastos`, color: 'negative', unelevated: true, noCaps: true, class: 'text-weight-bold' },
+    persistent: true
+  }).onOk(async () => {
+    cargando.value = true
+    try {
+      try {
+        await postData('/movimientos/eliminar-multiples', { ids: seleccionados.value })
+      } catch (errBulk) {
+        for (const id of seleccionados.value) {
+          await deleteData(`/movimientos/${id}`)
+        }
+      }
+      $q.notify({
+        type: 'positive',
+        message: `🗑️ ${cantidad} gastos eliminados exitosamente`,
+        icon: 'delete_sweep',
+        position: 'top'
+      })
+      limpiarSeleccion()
+      await cargarDatosMes()
+    } catch (e) {
+      $q.notify({
+        type: 'negative',
+        message: e.response?.data?.mensaje || '❌ Error al eliminar gastos seleccionados',
+        position: 'top'
+      })
+    } finally {
+      cargando.value = false
+    }
+  })
+}
 
 // Paleta de colores para gráficos
 const paletaColores = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#f97316']
@@ -499,6 +640,7 @@ const nombreMesSeleccionado = computed(() => {
 })
 
 const cambiarMesRelativo = (delta) => {
+  limpiarSeleccion()
   offsetMes.value += delta
   paginaActual.value = 1
   cargarDatosMes()
@@ -939,6 +1081,31 @@ onMounted(() => {
 }
 .table-row:last-child {
   border-bottom: none;
+}
+.table-row--selected {
+  background-color: #eff6ff !important;
+  border-left: 3px solid #3b82f6;
+}
+
+/* Barra de Selección Masiva */
+.bulk-action-bar {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 14px;
+}
+.btn-delete-bulk {
+  border-radius: 10px;
+  font-size: 13px;
+  padding: 6px 14px;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .categoria-badge {

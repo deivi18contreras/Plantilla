@@ -490,6 +490,16 @@ export const eliminarMovimiento = async (req, res) => {
             } else if (movimiento.tipo === 'recaudo') {
                 cuentaDoc.saldo -= movimiento.monto;
                 await cuentaDoc.save({ session });
+            } else if (movimiento.tipo === 'transferencia') {
+                cuentaDoc.saldo += movimiento.monto;
+                await cuentaDoc.save({ session });
+                if (movimiento.cuentaDestino) {
+                    const destinoDoc = await Cuenta.findOne({ nombre: movimiento.cuentaDestino }).session(session);
+                    if (destinoDoc) {
+                        destinoDoc.saldo -= movimiento.monto;
+                        await destinoDoc.save({ session });
+                    }
+                }
             }
         }
 
@@ -505,6 +515,73 @@ export const eliminarMovimiento = async (req, res) => {
         session.endSession();
         res.status(500).json({
             mensaje: '❌ Error al eliminar movimiento',
+            error: error.message
+        });
+    }
+};
+
+// ─── POST /api/movimientos/eliminar-multiples ──────────────────────────────────
+export const eliminarMultiplesMovimientos = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { ids } = req.body;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ mensaje: '❌ Se requiere un array de IDs no vacío' });
+        }
+
+        const movimientos = await Movimiento.find({ _id: { $in: ids } }).session(session);
+        if (!movimientos || movimientos.length === 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ mensaje: '❌ No se encontraron movimientos para eliminar' });
+        }
+
+        // Revertir saldos de cada movimiento
+        for (const mov of movimientos) {
+            const cuentaDoc = await Cuenta.findOne({ nombre: mov.cuenta }).session(session);
+            if (cuentaDoc) {
+                if (mov.tipo === 'gasto') {
+                    if (mov.cuenta !== 'Efectivo') {
+                        cuentaDoc.saldo += mov.monto;
+                        await cuentaDoc.save({ session });
+                    }
+                } else if (mov.tipo === 'recaudo') {
+                    cuentaDoc.saldo -= mov.monto;
+                    await cuentaDoc.save({ session });
+                } else if (mov.tipo === 'transferencia') {
+                    cuentaDoc.saldo += mov.monto;
+                    await cuentaDoc.save({ session });
+                    if (mov.cuentaDestino) {
+                        const destinoDoc = await Cuenta.findOne({ nombre: mov.cuentaDestino }).session(session);
+                        if (destinoDoc) {
+                            destinoDoc.saldo -= mov.monto;
+                            await destinoDoc.save({ session });
+                        }
+                    }
+                }
+            }
+        }
+
+        const resultado = await Movimiento.deleteMany({ _id: { $in: ids } }).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({
+            mensaje: `✅ ${resultado.deletedCount} movimientos eliminados correctamente`,
+            eliminados: resultado.deletedCount
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({
+            mensaje: '❌ Error al eliminar movimientos múltiples',
             error: error.message
         });
     }

@@ -179,16 +179,70 @@
           </div>
         </div>
 
+        <!-- Barra Flotante de Acciones Masivas (cuando hay items seleccionados) -->
+        <transition name="fade">
+          <div v-if="authStore.isAdmin && seleccionados.length > 0" class="bulk-action-bar row items-center justify-between q-px-md q-py-sm q-mb-md shadow-1">
+            <div class="row items-center q-gutter-x-sm">
+              <q-badge color="primary" class="q-px-sm q-py-xs text-weight-bold" style="font-size: 13px; border-radius: 8px;">
+                <q-icon name="check_circle" size="14px" class="q-mr-xs" />
+                {{ seleccionados.length }} seleccionados
+              </q-badge>
+              <span class="text-caption text-weight-bolder text-slate-800 gt-xs">
+                Monto total: {{ formatCOP(montoTotalSeleccionados) }}
+              </span>
+              <q-btn
+                v-if="seleccionados.length < movimientosFiltrados.length"
+                flat dense no-caps
+                size="sm"
+                color="primary"
+                icon="select_all"
+                :label="`Seleccionar todos los filtrados (${movimientosFiltrados.length})`"
+                class="text-weight-bold q-ml-xs gt-sm"
+                @click="seleccionarTodosFiltrados"
+              />
+            </div>
+            <div class="row items-center q-gutter-x-sm">
+              <q-btn
+                flat dense no-caps
+                size="sm"
+                color="slate-600"
+                icon="close"
+                label="Deseleccionar"
+                class="text-weight-bold"
+                @click="limpiarSeleccion"
+              />
+              <q-btn
+                unelevated no-caps
+                color="negative"
+                icon="delete"
+                :label="`Eliminar seleccionados (${seleccionados.length})`"
+                class="text-weight-bold shadow-1 btn-delete-bulk"
+                :loading="cargandoAccion"
+                @click="confirmarEliminarMultiples"
+              />
+            </div>
+          </div>
+        </transition>
+
         <!-- Tabla Estilizada de Transacciones -->
         <div class="table-container">
           <div class="table-header row items-center text-slate-500 text-caption font-bold q-px-md q-py-sm">
-            <div style="width: 120px;">Fecha</div>
-            <div style="flex: 1; min-width: 150px;">Descripción</div>
-            <div style="width: 130px;" class="gt-xs">Categoría</div>
-            <div style="width: 90px;" class="gt-xs text-center">Tipo</div>
-            <div style="width: 110px;" class="text-right">Monto</div>
-            <div style="width: 110px;" class="text-right gt-sm">Saldo</div>
-            <div style="width: 40px;" class="text-center"></div>
+            <div v-if="authStore.isAdmin" style="width: 36px;" class="text-center">
+              <q-checkbox
+                :model-value="todosPaginaSeleccionados"
+                :indeterminate="algunosPaginaSeleccionados"
+                dense
+                color="primary"
+                @update:model-value="toggleSeleccionarTodosPagina"
+              />
+            </div>
+            <div style="width: 110px;">Fecha</div>
+            <div style="flex: 1; min-width: 140px;">Descripción</div>
+            <div style="width: 120px;" class="gt-xs">Categoría</div>
+            <div style="width: 85px;" class="gt-xs text-center">Tipo</div>
+            <div style="width: 105px;" class="text-right">Monto</div>
+            <div style="width: 105px;" class="text-right gt-sm">Saldo</div>
+            <div style="width: 36px;" class="text-center"></div>
           </div>
 
           <!-- Spinner Loading -->
@@ -210,10 +264,21 @@
               v-for="item in movimientosPaginados"
               :key="item._id"
               class="table-row row items-center q-px-md q-py-sm cursor-pointer"
+              :class="{ 'table-row--selected': seleccionados.includes(item._id) }"
               @click="authStore.isAdmin ? abrirModalEdicion(item) : null"
             >
+              <!-- Checkbox de Selección Masiva -->
+              <div v-if="authStore.isAdmin" style="width: 36px;" class="text-center" @click.stop>
+                <q-checkbox
+                  v-model="seleccionados"
+                  :val="item._id"
+                  dense
+                  color="primary"
+                />
+              </div>
+
               <!-- Fecha y Hora -->
-              <div style="width: 120px;">
+              <div style="width: 110px;">
                 <div class="text-weight-bold text-slate-900" style="font-size: 13px;">
                   {{ formatFechaCorta(item.fecha) }}
                 </div>
@@ -223,7 +288,7 @@
               </div>
 
               <!-- Descripción con Ícono Redondo -->
-              <div class="row items-center q-gutter-x-sm" style="flex: 1; min-width: 150px;">
+              <div class="row items-center q-gutter-x-sm" style="flex: 1; min-width: 140px;">
                 <q-avatar
                   size="36px"
                   :color="tipoColorBg(item.tipo)"
@@ -244,14 +309,14 @@
               </div>
 
               <!-- Categoría (Badge Pill con Color) -->
-              <div style="width: 130px;" class="gt-xs">
+              <div style="width: 120px;" class="gt-xs">
                 <span class="categoria-badge" :style="estiloBadgeCategoria(item.categoria)">
                   {{ item.categoria || 'General' }}
                 </span>
               </div>
 
               <!-- Tipo (Entrada / Salida / Traslado) -->
-              <div style="width: 90px;" class="gt-xs text-center">
+              <div style="width: 85px;" class="gt-xs text-center">
                 <span
                   class="tipo-badge"
                   :class="{
@@ -266,7 +331,7 @@
               </div>
 
               <!-- Monto -->
-              <div style="width: 110px;" class="text-right">
+              <div style="width: 105px;" class="text-right">
                 <div
                   class="text-weight-bolder"
                   :class="item.tipo === 'recaudo' ? 'text-positive' : item.tipo === 'gasto' ? 'text-negative' : 'text-primary'"
@@ -277,14 +342,14 @@
               </div>
 
               <!-- Saldo Resultante -->
-              <div style="width: 110px;" class="text-right gt-sm">
+              <div style="width: 105px;" class="text-right gt-sm">
                 <div class="text-weight-bold text-slate-700" style="font-size: 12.5px;">
                   {{ formatCOP(item.saldoEstimado) }}
                 </div>
               </div>
 
               <!-- Acción / Flecha -->
-              <div style="width: 40px;" class="text-center">
+              <div style="width: 36px;" class="text-center">
                 <q-icon v-if="authStore.isAdmin" name="edit" size="16px" color="blue-6" class="cursor-pointer" title="Editar" />
                 <q-icon v-else name="chevron_right" size="18px" color="grey-5" />
               </div>
@@ -532,7 +597,7 @@ import { useMovimientosStore } from '@/store/movimientosStore'
 import { useCuentasStore } from '@/store/cuentasStore'
 import { useAuthStore } from '@/store/authStore'
 import { useConfiguracionStore } from '@/store/configuracionStore'
-import { putData, deleteData } from '@/services/apiService'
+import { putData, deleteData, postData } from '@/services/apiService'
 import { useQuasar } from 'quasar'
 import * as XLSX from 'xlsx'
 import ModalCompartirCierre from '@/components/ModalCompartirCierre.vue'
@@ -565,6 +630,43 @@ const cuentas = ['Efectivo', 'Nequi', 'Bancolombia']
 
 const paginaActual = ref(1)
 const POR_PAGINA = 10
+
+// ─── SELECCIÓN MÚLTIPLE DE MOVIMIENTOS ───
+const seleccionados = ref([])
+
+const todosPaginaSeleccionados = computed(() => {
+  if (!movimientosPaginados.value.length) return false
+  return movimientosPaginados.value.every(m => seleccionados.value.includes(m._id))
+})
+
+const algunosPaginaSeleccionados = computed(() => {
+  if (todosPaginaSeleccionados.value) return false
+  return movimientosPaginados.value.some(m => seleccionados.value.includes(m._id))
+})
+
+const toggleSeleccionarTodosPagina = (val) => {
+  if (val) {
+    const idsPagina = movimientosPaginados.value.map(m => m._id)
+    seleccionados.value = Array.from(new Set([...seleccionados.value, ...idsPagina]))
+  } else {
+    const idsPaginaSet = new Set(movimientosPaginados.value.map(m => m._id))
+    seleccionados.value = seleccionados.value.filter(id => !idsPaginaSet.has(id))
+  }
+}
+
+const seleccionarTodosFiltrados = () => {
+  seleccionados.value = movimientosFiltrados.value.map(m => m._id)
+}
+
+const limpiarSeleccion = () => {
+  seleccionados.value = []
+}
+
+const montoTotalSeleccionados = computed(() => {
+  const movs = movimientosStore.movimientos || []
+  const mapMovs = new Map(movs.map(m => [m._id, m.monto || 0]))
+  return seleccionados.value.reduce((sum, id) => sum + (mapMovs.get(id) || 0), 0)
+})
 
 // Saldo actual de la cuenta seleccionada
 const saldoCuentaActiva = computed(() => {
@@ -765,8 +867,8 @@ const cierresAgrupados = computed(() => {
 
 const formEdit = ref({ id: '', fecha: '', descripcion: '', monto: 0, categoria: '', cuenta: 'Efectivo' })
 
-const buscarPorFecha = () => { paginaActual.value = 1; movimientosStore.fetchPorFecha(filtroFecha.value) }
-const verTodos = () => { filtroFecha.value = ''; paginaActual.value = 1; movimientosStore.fetchMovimientos() }
+const buscarPorFecha = () => { limpiarSeleccion(); paginaActual.value = 1; movimientosStore.fetchPorFecha(filtroFecha.value) }
+const verTodos = () => { limpiarSeleccion(); filtroFecha.value = ''; paginaActual.value = 1; movimientosStore.fetchMovimientos() }
 
 const abrirModalEdicion = (mov) => {
   formEdit.value = { id: mov._id, fecha: mov.fecha ? mov.fecha.split('T')[0] : '', descripcion: mov.descripcion || '', monto: mov.monto, categoria: mov.categoria || '', cuenta: mov.cuenta || 'Efectivo' }
@@ -796,6 +898,48 @@ const confirmarEliminar = () => {
     } catch (e) {
       $q.notify({ type: 'negative', message: e.response?.data?.mensaje || '❌ Error al eliminar' })
     } finally { cargandoAccion.value = false }
+  })
+}
+
+// Eliminación masiva de movimientos seleccionados
+const confirmarEliminarMultiples = () => {
+  const cantidad = seleccionados.value.length
+  if (cantidad === 0) return
+
+  $q.dialog({
+    title: '⚠️ Confirmar eliminación múltiple',
+    message: `¿Estás seguro de que deseas eliminar permanentemente estos ${cantidad} movimientos por un valor total de ${formatCOP(montoTotalSeleccionados.value)}?\n\nLos saldos de las cuentas afectadas (Efectivo, Nequi, Bancolombia) se recalcularán automáticamente. Esta acción no se puede deshacer.`,
+    cancel: { label: 'Cancelar', flat: true, noCaps: true, color: 'slate-600' },
+    ok: { label: `Sí, eliminar ${cantidad} movimientos`, color: 'negative', unelevated: true, noCaps: true, class: 'text-weight-bold' },
+    persistent: true
+  }).onOk(async () => {
+    cargandoAccion.value = true
+    try {
+      try {
+        await postData('/movimientos/eliminar-multiples', { ids: seleccionados.value })
+      } catch (errBulk) {
+        console.warn('Fallback eliminando individualmente:', errBulk)
+        for (const id of seleccionados.value) {
+          await deleteData(`/movimientos/${id}`)
+        }
+      }
+      $q.notify({
+        type: 'positive',
+        message: `🗑️ ${cantidad} movimientos eliminados correctamente`,
+        icon: 'delete_sweep',
+        position: 'top'
+      })
+      limpiarSeleccion()
+      await Promise.all([buscarPorFecha(), cuentasStore.fetchCuentas()])
+    } catch (e) {
+      $q.notify({
+        type: 'negative',
+        message: e.response?.data?.mensaje || '❌ Error al eliminar movimientos seleccionados',
+        position: 'top'
+      })
+    } finally {
+      cargandoAccion.value = false
+    }
   })
 }
 
@@ -943,6 +1087,31 @@ onMounted(async () => {
 }
 .table-row:last-child {
   border-bottom: none;
+}
+.table-row--selected {
+  background-color: #eff6ff !important;
+  border-left: 3px solid #3b82f6;
+}
+
+/* Barra de Selección Masiva */
+.bulk-action-bar {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 14px;
+}
+.btn-delete-bulk {
+  border-radius: 10px;
+  font-size: 13px;
+  padding: 6px 14px;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 /* Badges */

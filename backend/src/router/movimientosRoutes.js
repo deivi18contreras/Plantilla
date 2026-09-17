@@ -8,6 +8,7 @@ import {
     listarMovimientos,
     editarMovimiento,
     eliminarMovimiento,
+    eliminarMultiplesMovimientos,
     importarGastos
 } from '../controller/movimientosController.js';
 import { verificarToken, soloAdmin } from '../middlewares/authMiddleware.js';
@@ -20,6 +21,7 @@ router.post('/cierre-diario', verificarToken, registrarCierreDiario);
 router.put('/cierre-diario', verificarToken, soloAdmin, editarCierreDiario);
 router.post('/transferencia', verificarToken, registrarTransferencia);
 router.post('/importar-gastos', verificarToken, importarGastos);
+router.post('/eliminar-multiples', verificarToken, eliminarMultiplesMovimientos);
 router.get('/', verificarToken, listarMovimientos);
 router.put('/:id', verificarToken, editarMovimiento);
 router.delete('/:id', verificarToken, eliminarMovimiento);
