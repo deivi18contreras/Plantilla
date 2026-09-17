@@ -113,7 +113,11 @@ export const registrarCierreDiario = async (req, res) => {
         movimientosCreados.push(mEfectivo);
 
         // Sumar al saldo de Efectivo únicamente la plata real libre recaudada (sin sumar la base de $600.000)
+        // Sumar al saldo de Efectivo la plata libre recaudada y descontar si se usó plata de días anteriores (gastos externos)
         cuentaEfectivo.saldo += recaudoEfectivoNeto;
+        if (gExt > 0) {
+            cuentaEfectivo.saldo -= gExt;
+        }
         await cuentaEfectivo.save({ session });
 
         // 2. Procesar Nequi
@@ -714,6 +718,9 @@ export const editarCierreDiario = async (req, res) => {
             const cuentaDoc = await Cuenta.findOne({ nombre: mov.cuenta }).session(session);
             if (cuentaDoc) {
                 cuentaDoc.saldo -= mov.monto;
+                if (mov.cuenta === 'Efectivo' && mov.gastosExternos > 0) {
+                    cuentaDoc.saldo += mov.gastosExternos;
+                }
                 await cuentaDoc.save({ session });
             }
         }
@@ -762,6 +769,9 @@ export const editarCierreDiario = async (req, res) => {
         movimientosCreados.push(mEfectivo);
 
         cuentaEfectivo.saldo += recaudoEfectivoNeto;
+        if (gExt > 0) {
+            cuentaEfectivo.saldo -= gExt;
+        }
         await cuentaEfectivo.save({ session });
 
         // Nequi
