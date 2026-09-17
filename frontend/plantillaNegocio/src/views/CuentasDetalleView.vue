@@ -1,23 +1,21 @@
 <template>
-  <div class="row justify-center q-pa-md">
-    <div class="card-widget" style="max-width: 960px; width: 100%;">
+  <div class="dashboard-main-card full-width">
 
       <!-- ENCABEZADO -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-lg">
         <div>
           <div class="text-h5 text-weight-bolder text-slate-900">Cuentas y Bancos</div>
-          <div class="text-caption text-slate-500 font-medium">
-            Extracto y movimientos detallados de tus cuentas y transferencias
+          <div class="text-caption text-slate-500">
+            Extracto y movimientos detallados de tus cuentas
           </div>
         </div>
-
         <q-btn
-          unelevated
-          no-caps
+          unelevated no-caps
           color="primary"
           icon="swap_horiz"
           label="Transferir Fondos"
           class="text-weight-bold"
+          style="border-radius:12px;"
           @click="$router.push('/transferencia')"
         />
       </div>
@@ -278,8 +276,6 @@
           color="primary"
         />
       </div>
-
-    </div>
   </div>
 </template>
 

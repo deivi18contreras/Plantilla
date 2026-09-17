@@ -148,7 +148,13 @@ body {
 }
 
 /* ─── INPUTS ──────────────────────────────────────────────────────────────── */
+.clean-input {
+  width: 100%;
+  max-width: 100%;
+}
 .clean-input .q-field__control {
+  width: 100%;
+  max-width: 100%;
   background: #ffffff !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 14px !important;

@@ -26,6 +26,12 @@ const routes = [
         meta: { requiresAdmin: true } // El Dashboard con saldos totales es SOLO para Admin
       },
       {
+        path: 'ventas',
+        name: 'ventas',
+        component: () => import('@/views/VentasView.vue'),
+        meta: { requiresAdmin: true }
+      },
+      {
         path: 'gasto',
         name: 'gasto',
         component: () => import('@/views/GastoView.vue')
