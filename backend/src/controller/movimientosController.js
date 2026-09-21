@@ -34,14 +34,12 @@ export const registrarGasto = async (req, res) => {
             { session }
         );
 
-        // Descontar del saldo solo si NO es Efectivo (los gastos en Efectivo se pagan con el producido diario en caja antes del cierre)
-        if (cuenta !== 'Efectivo') {
-            if (cuentaDoc.saldo < monto) {
-                advertencia = `⚠️ El saldo de ${cuenta} quedó negativo temporalmente.`;
-            }
-            cuentaDoc.saldo -= Number(monto);
-            await cuentaDoc.save({ session });
+        // Descontar del saldo de la cuenta utilizada (Efectivo, Bancolombia, Nequi, etc.)
+        if (cuentaDoc.saldo < monto) {
+            advertencia = `⚠️ El saldo de ${cuenta} quedó negativo temporalmente.`;
         }
+        cuentaDoc.saldo -= Number(monto);
+        await cuentaDoc.save({ session });
 
         await session.commitTransaction();
         session.endSession();
@@ -459,10 +457,8 @@ export const editarMovimiento = async (req, res) => {
         const cuentaVieja = await Cuenta.findOne({ nombre: movimientoViejo.cuenta }).session(session);
         if (cuentaVieja) {
             if (movimientoViejo.tipo === 'gasto') {
-                if (movimientoViejo.cuenta !== 'Efectivo') {
-                    cuentaVieja.saldo += movimientoViejo.monto;
-                    await cuentaVieja.save({ session });
-                }
+                cuentaVieja.saldo += movimientoViejo.monto;
+                await cuentaVieja.save({ session });
             } else if (movimientoViejo.tipo === 'recaudo') {
                 cuentaVieja.saldo -= movimientoViejo.monto;
                 await cuentaVieja.save({ session });
@@ -479,10 +475,8 @@ export const editarMovimiento = async (req, res) => {
         }
 
         if (movimientoViejo.tipo === 'gasto') {
-            if (nuevaCuentaNombre !== 'Efectivo') {
-                cuentaNueva.saldo -= nuevoMonto;
-                await cuentaNueva.save({ session });
-            }
+            cuentaNueva.saldo -= nuevoMonto;
+            await cuentaNueva.save({ session });
         } else if (movimientoViejo.tipo === 'recaudo') {
             cuentaNueva.saldo += nuevoMonto;
             await cuentaNueva.save({ session });
@@ -531,10 +525,8 @@ export const eliminarMovimiento = async (req, res) => {
         const cuentaDoc = await Cuenta.findOne({ nombre: movimiento.cuenta }).session(session);
         if (cuentaDoc) {
             if (movimiento.tipo === 'gasto') {
-                if (movimiento.cuenta !== 'Efectivo') {
-                    cuentaDoc.saldo += movimiento.monto;
-                    await cuentaDoc.save({ session });
-                }
+                cuentaDoc.saldo += movimiento.monto;
+                await cuentaDoc.save({ session });
             } else if (movimiento.tipo === 'recaudo') {
                 cuentaDoc.saldo -= movimiento.monto;
                 await cuentaDoc.save({ session });
@@ -594,10 +586,8 @@ export const eliminarMultiplesMovimientos = async (req, res) => {
             const cuentaDoc = await Cuenta.findOne({ nombre: mov.cuenta }).session(session);
             if (cuentaDoc) {
                 if (mov.tipo === 'gasto') {
-                    if (mov.cuenta !== 'Efectivo') {
-                        cuentaDoc.saldo += mov.monto;
-                        await cuentaDoc.save({ session });
-                    }
+                    cuentaDoc.saldo += mov.monto;
+                    await cuentaDoc.save({ session });
                 } else if (mov.tipo === 'recaudo') {
                     cuentaDoc.saldo -= mov.monto;
                     await cuentaDoc.save({ session });
