@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getData } from '@/services/apiService'
+import { getData, postData } from '@/services/apiService'
 
 export const useRemanentesStore = defineStore('remanentes', {
   state: () => ({
@@ -36,6 +36,20 @@ export const useRemanentesStore = defineStore('remanentes', {
       } catch (error) {
         console.error('Error al cargar todos los remanentes:', error)
         this.todos = []
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async consolidarSobres(payload = {}) {
+      this.loading = true
+      try {
+        const res = await postData('/remanentes/consolidar', payload)
+        await this.fetchDisponibles()
+        return res
+      } catch (error) {
+        console.error('Error al consolidar sobres:', error)
+        throw error
       } finally {
         this.loading = false
       }

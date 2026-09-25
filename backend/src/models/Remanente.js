@@ -8,12 +8,14 @@ const usoRemanenteSchema = new mongoose.Schema({
 }, { _id: false });
 
 const remanenteSchema = new mongoose.Schema({
-    fecha: { type: Date, required: true, unique: true },
+    fecha: { type: Date, required: true },
     montoInicial: { type: Number, required: true },
     montoGastado: { type: Number, default: 0 },
     saldoDisponible: { type: Number, required: true },
     usos: [usoRemanenteSchema],
-    activo: { type: Boolean, default: true }
+    activo: { type: Boolean, default: true },
+    esConsolidado: { type: Boolean, default: false },
+    archivadoMotivo: { type: String, default: '' }
 }, {
     timestamps: true
 });
