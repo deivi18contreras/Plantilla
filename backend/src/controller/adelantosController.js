@@ -240,3 +240,150 @@ export const abonarManualAdelanto = async (req, res) => {
     })
   }
 }
+
+// ─── PUT /api/adelantos/:id ───────────────────────────────────────────────────
+// Edita un adelanto existente (fecha, monto, motivo, cuentaOrigen).
+// Reajusta los saldos de las cuentas involucradas de forma consistente y atómica.
+export const editarAdelanto = async (req, res) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
+  try {
+    const { id } = req.params
+    const { fecha, monto, motivo, cuentaOrigen } = req.body
+
+    const adelanto = await Adelanto.findById(id).session(session)
+    if (!adelanto) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(404).json({ mensaje: '❌ Adelanto no encontrado' })
+    }
+
+    const nuevoMonto = Number(monto)
+    if (isNaN(nuevoMonto) || nuevoMonto <= 0) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(400).json({ mensaje: '❌ El monto debe ser un número mayor a 0' })
+    }
+
+    if (nuevoMonto < adelanto.montoRecuperado) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(400).json({
+        mensaje: `❌ El monto no puede ser menor a lo que ya se ha recuperado/abonado ($${adelanto.montoRecuperado.toLocaleString('es-CO')})`
+      })
+    }
+
+    const cuentaVieja = adelanto.cuentaOrigen || 'Externo'
+    const cuentaNueva = cuentaOrigen || adelanto.cuentaOrigen || 'Externo'
+    const montoViejo = adelanto.monto
+
+    // Reconciliación de saldos de cuentas
+    if (cuentaVieja === cuentaNueva) {
+      if (cuentaVieja !== 'Externo') {
+        const diferencia = nuevoMonto - montoViejo
+        if (diferencia !== 0) {
+          let cDoc = await Cuenta.findOne({ nombre: cuentaVieja }).session(session)
+          if (cDoc) {
+            cDoc.saldo -= diferencia
+            await cDoc.save({ session })
+          }
+        }
+      }
+    } else {
+      // Revertir deducción de cuenta anterior
+      if (cuentaVieja !== 'Externo') {
+        let cViejaDoc = await Cuenta.findOne({ nombre: cuentaVieja }).session(session)
+        if (cViejaDoc) {
+          cViejaDoc.saldo += montoViejo
+          await cViejaDoc.save({ session })
+        }
+      }
+      // Aplicar nueva deducción a la cuenta seleccionada
+      if (cuentaNueva !== 'Externo') {
+        let cNuevaDoc = await Cuenta.findOne({ nombre: cuentaNueva }).session(session)
+        if (cNuevaDoc) {
+          cNuevaDoc.saldo -= nuevoMonto
+          await cNuevaDoc.save({ session })
+        }
+      }
+    }
+
+    // Actualizar campos
+    if (fecha) adelanto.fecha = fecha
+    adelanto.monto = nuevoMonto
+    if (motivo !== undefined) adelanto.motivo = motivo
+    adelanto.cuentaOrigen = cuentaNueva
+
+    // Recalcular saldo pendiente y estado
+    adelanto.saldoPendiente = nuevoMonto - adelanto.montoRecuperado
+    adelanto.estado = adelanto.saldoPendiente === 0 ? 'recuperado' : 'pendiente'
+
+    await adelanto.save({ session })
+    await session.commitTransaction()
+    session.endSession()
+
+    res.status(200).json({
+      mensaje: '✅ Adelanto actualizado correctamente',
+      adelanto
+    })
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    res.status(500).json({
+      mensaje: '❌ Error al editar adelanto',
+      error: error.message
+    })
+  }
+}
+
+// ─── DELETE /api/adelantos/:id ────────────────────────────────────────────────
+// Elimina un adelanto que no tenga abonos. Si salió de una cuenta, reintegra el saldo.
+export const eliminarAdelanto = async (req, res) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
+  try {
+    const { id } = req.params
+    const adelanto = await Adelanto.findById(id).session(session)
+    if (!adelanto) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(404).json({ mensaje: '❌ Adelanto no encontrado' })
+    }
+
+    if (adelanto.montoRecuperado > 0) {
+      await session.abortTransaction()
+      session.endSession()
+      return res.status(400).json({
+        mensaje: '❌ No se puede eliminar un adelanto que ya tiene abonos registrados'
+      })
+    }
+
+    // Devolver la plata a la cuenta de origen
+    if (adelanto.cuentaOrigen && adelanto.cuentaOrigen !== 'Externo') {
+      let cuentaDoc = await Cuenta.findOne({ nombre: adelanto.cuentaOrigen }).session(session)
+      if (cuentaDoc) {
+        cuentaDoc.saldo += adelanto.monto
+        await cuentaDoc.save({ session })
+      }
+    }
+
+    await Adelanto.findByIdAndDelete(id).session(session)
+
+    await session.commitTransaction()
+    session.endSession()
+
+    res.status(200).json({
+      mensaje: '✅ Adelanto eliminado correctamente'
+    })
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    res.status(500).json({
+      mensaje: '❌ Error al eliminar adelanto',
+      error: error.message
+    })
+  }
+}
+

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { getData, postData } from '@/services/apiService'
 
+
 export const useRemanentesStore = defineStore('remanentes', {
   state: () => ({
     disponibles: [],

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getData, postData } from '@/services/apiService'
+import { getData, postData, putData, deleteData } from '@/services/apiService'
 
 export const useAdelantosStore = defineStore('adelantos', {
   state: () => ({
@@ -44,10 +44,33 @@ export const useAdelantosStore = defineStore('adelantos', {
       return data
     },
 
+    // Editar un adelanto
+    async editarAdelanto(id, payload) {
+      const data = await putData(`/adelantos/${id}`, payload)
+      await this.fetchPendientes()
+      if (this.todos.length > 0) {
+        await this.fetchTodos()
+      }
+      return data
+    },
+
+    // Eliminar un adelanto
+    async eliminarAdelanto(id) {
+      const data = await deleteData(`/adelantos/${id}`)
+      await this.fetchPendientes()
+      if (this.todos.length > 0) {
+        await this.fetchTodos()
+      }
+      return data
+    },
+
     // Abonar o pagar un adelanto manualmente
     async abonarManual(id, monto, cuentaDestino = 'Efectivo') {
       const data = await postData(`/adelantos/${id}/abono`, { monto, cuentaDestino })
       await this.fetchPendientes()
+      if (this.todos.length > 0) {
+        await this.fetchTodos()
+      }
       return data
     }
   }

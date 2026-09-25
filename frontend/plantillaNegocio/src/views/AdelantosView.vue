@@ -205,8 +205,19 @@
                   <div v-else class="text-caption text-slate-400 q-mt-xs">Sin abonos aún</div>
                 </div>
 
-                <!-- Botón abono -->
-                <div style="flex-shrink: 0;">
+                <!-- Botón abono y editar -->
+                <div class="row items-center q-gutter-x-xs" style="flex-shrink: 0;">
+                  <q-btn
+                    v-if="authStore.isAdmin"
+                    flat dense no-caps
+                    size="sm"
+                    color="primary"
+                    icon="edit"
+                    label="Editar"
+                    style="background: #eff6ff; border-radius: 8px;"
+                    class="text-weight-bold"
+                    @click="abrirModalEditar(a)"
+                  />
                   <q-btn
                     flat dense no-caps
                     size="sm"
@@ -263,13 +274,34 @@
                 />
                 <div class="col">
                   <div class="text-weight-bold text-slate-900">{{ a.motivo || 'Sin motivo' }}</div>
-                  <div class="text-caption text-slate-500">{{ formatFecha(a.fecha) }}</div>
+                  <div class="text-caption text-slate-500">{{ formatFecha(a.fecha) }} · Salió de: {{ a.cuentaOrigen || 'Efectivo' }}</div>
                 </div>
                 <div class="text-right">
                   <div class="text-weight-bolder" :class="a.estado === 'recuperado' ? 'text-green-7' : 'text-red-6'">
                     {{ formatCOP(a.monto) }}
                   </div>
                   <q-badge :color="a.estado === 'recuperado' ? 'positive' : 'warning'" :label="a.estado" />
+                </div>
+                <div v-if="authStore.isAdmin" class="row items-center q-gutter-x-xs q-ml-sm">
+                  <q-btn
+                    flat round dense
+                    size="sm"
+                    color="primary"
+                    icon="edit"
+                    @click="abrirModalEditar(a)"
+                  >
+                    <q-tooltip>Editar adelanto</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="a.montoRecuperado === 0"
+                    flat round dense
+                    size="sm"
+                    color="negative"
+                    icon="delete"
+                    @click="confirmarEliminar(a)"
+                  >
+                    <q-tooltip>Eliminar adelanto</q-tooltip>
+                  </q-btn>
                 </div>
               </div>
             </div>
@@ -405,6 +437,90 @@
       </q-card>
     </q-dialog>
 
+    <!-- ───── Modal: editar adelanto ───── -->
+    <q-dialog v-model="modalEditar">
+      <q-card style="width: 100%; max-width: 440px; border-radius: 20px;" class="q-pa-md">
+        <q-card-section class="row items-center justify-between q-pb-none">
+          <div class="text-subtitle1 text-weight-bolder text-slate-900">✏️ Editar Adelanto</div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm column q-gutter-y-md" v-if="formEditar">
+          <div v-if="formEditar.montoRecuperado > 0" class="q-pa-xs bg-amber-1 text-amber-9 text-caption rounded-borders q-px-sm" style="border: 1px solid #fef3c7; border-radius: 8px;">
+            ⚠️ Este adelanto ya tiene <strong>{{ formatCOP(formEditar.montoRecuperado) }}</strong> abonados. El nuevo monto total no puede ser menor a ese valor.
+          </div>
+
+          <div>
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">Fecha del adelanto</div>
+            <q-input v-model="formEditar.fecha" type="date" borderless class="clean-input" />
+          </div>
+
+          <div>
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">Monto total original</div>
+            <q-input
+              v-model="formEditar.monto"
+              type="number"
+              prefix="$"
+              placeholder="0"
+              borderless
+              class="clean-input"
+            />
+          </div>
+
+          <div>
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">Motivo / Descripción</div>
+            <q-input
+              v-model="formEditar.motivo"
+              placeholder="Ej. Pedido proveedor de carne"
+              borderless
+              class="clean-input"
+            />
+          </div>
+
+          <div>
+            <div class="text-caption text-weight-bold text-slate-700 q-mb-xs">¿De qué cuenta salió el dinero?</div>
+            <q-select
+              v-model="formEditar.cuentaOrigen"
+              :options="[
+                { label: '💵 Efectivo (caja física)', value: 'Efectivo' },
+                { label: '🏦 Bancolombia', value: 'Bancolombia' },
+                { label: '📱 Nequi', value: 'Nequi' },
+                { label: '⚪ Externo (sin tocar cuentas)', value: 'Externo' }
+              ]"
+              emit-value
+              map-options
+              borderless
+              class="clean-input"
+            />
+          </div>
+
+          <div class="row items-center justify-between q-pt-sm">
+            <q-btn
+              v-if="formEditar.montoRecuperado === 0"
+              flat no-caps
+              color="negative"
+              icon="delete"
+              label="Eliminar"
+              class="text-weight-bold"
+              @click="confirmarEliminarDesdeModal"
+            />
+            <div v-else></div>
+
+            <q-btn
+              no-caps
+              label="Guardar cambios"
+              color="primary"
+              unelevated
+              class="text-weight-bold"
+              style="border-radius: 12px; height: 42px; padding: 0 20px;"
+              :loading="guardandoEdicion"
+              @click="confirmarEdicion"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
   </div>
 </template>
 
@@ -443,6 +559,18 @@ const adelantoSeleccionado = ref(null)
 const montoAbono = ref('')
 const cuentaDestinoAbono = ref('Efectivo')
 const guardandoAbono = ref(false)
+
+// ── Modal editar ───────────────────────────────────────────────────────────
+const modalEditar = ref(false)
+const guardandoEdicion = ref(false)
+const formEditar = ref({
+  _id: '',
+  fecha: getFechaLocalHoy(),
+  monto: '',
+  motivo: '',
+  cuentaOrigen: 'Efectivo',
+  montoRecuperado: 0
+})
 
 // ── Historial abonos desplegado ────────────────────────────────────────────
 const abonosAbiertos = ref([])
@@ -511,6 +639,91 @@ const confirmarAbono = async () => {
   } finally {
     guardandoAbono.value = false
   }
+}
+
+// ── Edición y eliminación de adelantos ───────────────────────────────────────
+const abrirModalEditar = (adelanto) => {
+  let fechaFormato = getFechaLocalHoy()
+  if (adelanto.fecha) {
+    const d = parseFechaLocal(adelanto.fecha)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    fechaFormato = `${year}-${month}-${day}`
+  }
+
+  formEditar.value = {
+    _id: adelanto._id,
+    fecha: fechaFormato,
+    monto: adelanto.monto,
+    motivo: adelanto.motivo || '',
+    cuentaOrigen: adelanto.cuentaOrigen || 'Efectivo',
+    montoRecuperado: Number(adelanto.montoRecuperado || 0)
+  }
+  modalEditar.value = true
+}
+
+const confirmarEdicion = async () => {
+  if (!formEditar.value.fecha || !formEditar.value.monto) {
+    $q.notify({ type: 'warning', message: '⚠️ La fecha y el monto son obligatorios' })
+    return
+  }
+  const montoNum = Number(formEditar.value.monto)
+  if (isNaN(montoNum) || montoNum <= 0) {
+    $q.notify({ type: 'warning', message: '⚠️ Ingresa un monto válido mayor a 0' })
+    return
+  }
+  if (montoNum < formEditar.value.montoRecuperado) {
+    $q.notify({
+      type: 'warning',
+      message: `⚠️ El monto no puede ser menor a lo recuperado ($${formEditar.value.montoRecuperado.toLocaleString('es-CO')})`
+    })
+    return
+  }
+
+  guardandoEdicion.value = true
+  try {
+    const res = await adelantosStore.editarAdelanto(formEditar.value._id, {
+      fecha: formEditar.value.fecha,
+      monto: montoNum,
+      motivo: formEditar.value.motivo,
+      cuentaOrigen: formEditar.value.cuentaOrigen
+    })
+    $q.notify({ type: 'positive', message: res.mensaje || '✅ Adelanto actualizado correctamente' })
+    modalEditar.value = false
+    await cuentasStore.fetchCuentas()
+  } catch (error) {
+    $q.notify({ type: 'negative', message: error.response?.data?.mensaje || '❌ Error al editar adelanto' })
+  } finally {
+    guardandoEdicion.value = false
+  }
+}
+
+const confirmarEliminar = (adelanto) => {
+  $q.dialog({
+    title: '🗑️ Eliminar Adelanto',
+    message: `¿Estás seguro de eliminar el adelanto "${adelanto.motivo || 'Sin motivo'}" por ${formatCOP(adelanto.monto)}? El dinero saliente se reintegrará a la cuenta de origen.`,
+    cancel: { label: 'Cancelar', flat: true, noCaps: true },
+    ok: { label: 'Sí, eliminar', color: 'negative', unelevated: true, noCaps: true }
+  }).onOk(async () => {
+    try {
+      const res = await adelantosStore.eliminarAdelanto(adelanto._id)
+      $q.notify({ type: 'positive', message: res.mensaje || '✅ Adelanto eliminado correctamente' })
+      if (modalEditar.value) modalEditar.value = false
+      await cuentasStore.fetchCuentas()
+    } catch (error) {
+      $q.notify({ type: 'negative', message: error.response?.data?.mensaje || '❌ Error al eliminar' })
+    }
+  })
+}
+
+const confirmarEliminarDesdeModal = () => {
+  if (!formEditar.value) return
+  confirmarEliminar({
+    _id: formEditar.value._id,
+    motivo: formEditar.value.motivo,
+    monto: formEditar.value.monto
+  })
 }
 
 const cargarTodos = async () => {

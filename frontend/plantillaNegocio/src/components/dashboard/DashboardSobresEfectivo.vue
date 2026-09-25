@@ -47,6 +47,7 @@
       >
         <div
           class="q-pa-sm rounded-borders full-height column justify-between"
+          style="border: 1px solid #fed7aa; background: #fffbf5; border-radius: 12px; min-height: 60px;"
           :style="sobre.esConsolidado
             ? 'border: 1.5px solid #93c5fd; background: #f0f7ff; border-radius: 12px; min-height: 60px;'
             : 'border: 1px solid #fed7aa; background: #fffbf5; border-radius: 12px; min-height: 60px;'"
@@ -157,6 +158,7 @@ import { useQuasar } from 'quasar'
 import { useRemanentesStore } from '@/store/remanentesStore'
 import { useCuentasStore } from '@/store/cuentasStore'
 import { formatFechaCorta, getFechaLocalHoy } from '@/utils/dateUtils'
+
 
 const $q = useQuasar()
 const remanentesStore = useRemanentesStore()

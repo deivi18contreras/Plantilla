@@ -3,7 +3,9 @@ import {
   registrarAdelanto,
   listarAdelantosPendientes,
   listarTodosAdelantos,
-  abonarManualAdelanto
+  abonarManualAdelanto,
+  editarAdelanto,
+  eliminarAdelanto
 } from '../controller/adelantosController.js'
 import { verificarToken, soloAdmin } from '../middlewares/authMiddleware.js'
 
@@ -21,5 +23,12 @@ router.post('/', verificarToken, soloAdmin, registrarAdelanto)
 // Abonar o pagar manualmente un adelanto (solo admin)
 router.post('/:id/abono', verificarToken, soloAdmin, abonarManualAdelanto)
 
+// Editar un adelanto existente (solo admin)
+router.put('/:id', verificarToken, soloAdmin, editarAdelanto)
+
+// Eliminar un adelanto sin abonos (solo admin)
+router.delete('/:id', verificarToken, soloAdmin, eliminarAdelanto)
+
 export default router
+
 
